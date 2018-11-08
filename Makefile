@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:22:12 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:30:36 -0800 freebsdfrau $
 #
 ############################################################ OBJECTS
 
@@ -569,13 +569,15 @@ synctousb:
 	 trap="eval2 sudo chflags schg mnt.usb/umount.sh; $$trap";      \
 	 trap "$$trap" EXIT;                                            \
 	 if eval2 type rsync > /dev/null 2>&1; then                     \
-	 	eval2 sudo rsync -avSH --exclude .uuid mnt/ mnt.usb/;   \
+	 	eval2 sudo rsync -avSH --exclude .uuid --exclude geli   \
+	 		mnt/ mnt.usb/;                                  \
 	 else                                                           \
 	 	dirs=$$( eval2 find mnt/ -mindepth 1 -type d );         \
 	 	echo "$$dirs";                                          \
 	 	echo "$$dirs" | eval2 sed -e "'s/^mnt/&.usb/'" |        \
 	 		eval2 sudo xargs mkdir -pv;                     \
-	 	files=$$( eval2 find mnt/ -type f ! -name .uuid );      \
+	 	files=$$( eval2 find mnt/ -type f                       \
+	 		! -name .uuid ! -path "'*/geli/*'" );           \
 	 	echo "$$files";                                         \
 	 	echo "$$files" |                                        \
 	 		eval2 sed -e "'s/^mnt//;s/.*/mnt& mnt.usb&/'" | \
@@ -605,13 +607,15 @@ synctoimg: open
 	 trap="eval2 sudo chflags schg mnt/umount.sh; $$trap";              \
 	 trap "$$trap" EXIT;                                                \
 	 if eval2 type rsync > /dev/null 2>&1; then                         \
-	 	eval2 sudo rsync -avSH --exclude .uuid mnt.usb/ mnt/;       \
+	 	eval2 sudo rsync -avSH --exclude .uuid --exclude geli       \
+	 		mnt.usb/ mnt/;                                      \
 	 else                                                               \
 	 	dirs=$$( eval2 find mnt.usb/ -mindepth 1 -type d );         \
 	 	echo "$$dirs";                                              \
 	 	echo "$$dirs" | eval2 sed -e "'s/^mnt.usb/mnt/'" |          \
 	 		eval2 sudo xargs mkdir -pv;                         \
-	 	files=$$( eval2 find mnt.usb/ -type f ! -name .uuid );      \
+	 	files=$$( eval2 find mnt.usb/ -type f                       \
+	 		! -name .uuid ! -path "'*/geli/*'" );               \
 	 	echo "$$files";                                             \
 	 	echo "$$files" |                                            \
 	 		eval2 sed -e "'s/^mnt.usb//;s/.*/mnt.usb& mnt&/'" | \
