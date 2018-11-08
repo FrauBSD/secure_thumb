@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2018-11-08 11:58:27 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:17:07 -0800 freebsdfrau $
 #
 ############################################################ OBJECTS
 
@@ -211,7 +211,7 @@ $(IMGFILE):
 	 eval2 sudo mount "/dev/$${md}s1a" mnt;                              \
 	 trap="eval2 sudo umount mnt && ( eval2 rmdir mnt || : ) && $$trap"; \
 	 trap "$$trap" EXIT;                                                 \
-	 eval2 sudo mkdir -p mnt/geli;                                       \
+	 eval2 sudo mkdir -m 0700 -p mnt/geli;                               \
 	 logger=;                                                            \
 	 caution='is loaded!\nAn attacker could snoop your password!';       \
 	 kldstat -v 2> /dev/null | grep -q dtrace && logger=DTrace;          \
@@ -270,11 +270,11 @@ $(IMGFILE):
 	 	trap "$$trap" EXIT;                                          \
 	 	eval2 sudo newfs $(NEWFS_ARGS) $$md$$part.eli;               \
 	 done;                                                               \
-	 eval2 sudo mkdir -p mnt/keys;                                       \
+	 eval2 sudo mkdir -m 0700 -p mnt/keys;                               \
 	 eval2 sudo mount "/dev/$${md}s1d.eli" mnt/keys;                     \
 	 trap="eval2 sudo umount mnt/keys && $$trap";                        \
 	 trap "$$trap" EXIT;                                                 \
-	 eval2 sudo mkdir -p mnt/encstore;                                   \
+	 eval2 sudo mkdir -m 0700 -p mnt/encstore;                           \
 	 if eval2 type rsync > /dev/null 2>&1; then                          \
 	 	eval2 sudo rsync -avSH src/ mnt/;                            \
 	 else                                                                \
