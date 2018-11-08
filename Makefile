@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:30:36 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:37:16 -0800 freebsdfrau $
 #
 ############################################################ OBJECTS
 
@@ -206,7 +206,7 @@ $(IMGFILE):
 	 eval2 sudo gpart add -t freebsd-ufs -i 1 -s 128m "$${md}s1";        \
 	 eval2 sudo gpart add -t freebsd-ufs -i 4 -s 16m "$${md}s1";         \
 	 eval2 sudo gpart add -t freebsd-ufs -i 5 "$${md}s1";                \
-	 eval2 sudo newfs -U -O 1 -f 512 -b 4096 -i 8192 "$${md}s1a";        \
+	 eval2 sudo newfs $(NEWFS_ARGS) "$${md}s1a";                         \
 	 eval2 mkdir -p mnt;                                                 \
 	 eval2 sudo mount "/dev/$${md}s1a" mnt;                              \
 	 trap="eval2 sudo umount mnt && ( eval2 rmdir mnt || : ) && $$trap"; \
