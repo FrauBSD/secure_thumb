@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:17:07 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:18:22 -0800 freebsdfrau $
 #
 ############################################################ OBJECTS
 
@@ -603,7 +603,7 @@ synctoimg: open
 	 trap="eval2 sudo chflags schg mnt/mount.sh; $$trap";               \
 	 trap="eval2 sudo chflags schg mnt/umount.sh; $$trap";              \
 	 trap "$$trap" EXIT;                                                \
-	 if eval2 type rsyncxxx > /dev/null 2>&1; then                         \
+	 if eval2 type rsync > /dev/null 2>&1; then                         \
 	 	eval2 sudo rsync -avSH --exclude .uuid mnt.usb/ mnt/;       \
 	 else                                                               \
 	 	dirs=$$( eval2 find mnt.usb/ -mindepth 1 -type d );         \
