@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:18:22 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:22:12 -0800 freebsdfrau $
 #
 ############################################################ OBJECTS
 
@@ -261,6 +261,7 @@ $(IMGFILE):
 	 	eval2 dd if=$(RANDOM) of=$$host.key                          \
 	 		bs=1k count=$(KEYSIZE);                              \
 	 	eval2 sudo chmod 400 $$node.key;                             \
+	 	eval2 sudo chflags schg $$node.key;                          \
 	 	eval2 chmod 400 $$host.key;                                  \
 	 	echo "$$pass1" | eval2 sudo geli init -J- -B $$node.backup   \
 	 		-K $$node.key -K $$host.key $$md$$part;              \
