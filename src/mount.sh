@@ -4,7 +4,7 @@
 # $Title: Script to unmount GELI partitions of USB device $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
 # $Header: /cvsroot/druidbsd/secure_thumb/mount.sh,v 1.2 2015/09/08 19:53:31 devinteske Exp $
-# $FrauBSD: secure_thumb/src/mount.sh 2018-11-08 11:58:27 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/src/mount.sh 2018-11-08 12:09:23 -0800 freebsdfrau $
 #
 ############################################################ CONFIGURATION
 
@@ -182,11 +182,11 @@ for part in $PARTS; do
 	hostkey=
 	if [ "$GELI_HOST_KEY_DIR" ]; then
 		hostkey=$GELI_HOST_KEY_DIR/ffhost-$UUID-$part.key
-		[ ! -d "$hostkey" ] || [ -e "$hostkey" ] || hostkey=
+		[ -d "$hostkey" -o ! -e "$hostkey" ] && hostkey=
 	fi
 	if [ ! "$hostkey" ]; then
 		hostkey=~/geli/ffhost-$UUID-$part.key
-		[ ! -d "$hostkey" ] || [ -e "$hostkey" ] || hostkey=
+		[ -d "$hostkey" -o ! -e "$hostkey" ] && hostkey=
 	fi
 	if [ ! "$hostkey" ]; then
 		echo "No host key for $part partition (skipping)" >&2
