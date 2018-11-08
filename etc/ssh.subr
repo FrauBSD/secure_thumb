@@ -6,7 +6,7 @@
 # 	Last Change: 2018 November 8
 #
 # Add to .bash_profile:
-# 	. path/to/this/file || exit
+# 	. ~/etc/ssh.subr
 #
 ############################################################ GLOBALS
 
