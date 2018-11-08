@@ -4,7 +4,7 @@
 # $Title: Script to unmount GELI partitions of USB device $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
 # $Header: /cvsroot/druidbsd/secure_thumb/mount.sh,v 1.2 2015/09/08 19:53:31 devinteske Exp $
-# $FrauBSD: secure_thumb/src/mount.sh 2018-11-08 12:09:23 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/src/mount.sh 2018-11-08 12:51:29 -0800 freebsdfrau $
 #
 ############################################################ CONFIGURATION
 
@@ -174,8 +174,13 @@ fi
 #
 # Attach if necessary
 #
-exec 3>&1; PASSPHRASE=
-[ "$READ_STDIN" ] && read PASSPHRASE
+exec 3>&1
+PASSPHRASE=
+PASSPHRASE_READ=
+if [ "$READ_STDIN" ]; then
+	read PASSPHRASE
+	PASSPHRASE_READ=1
+fi
 for part in $PARTS; do
 	part="${part%%=*}"
 	nodekey=${0%/*}/geli/ffthumb-$part.key
@@ -194,7 +199,7 @@ for part in $PARTS; do
 	fi
 	if ! geli status $daN$part.eli 2> /dev/null; then
 		logger_check || exit $FAILURE
-		[ "$PASSPHRASE" -o "$READ_STDIN" ] || PASSPHRASE=$(
+		[ "$PASSPHRASE_READ" ] || PASSPHRASE=$(
 			[ ! "$NO_DIALOG" ] && dialog \
 				--title "geli attach $daN" --backtitle "$0" \
 				--hline "Keys will not appear as you type" \
@@ -210,6 +215,7 @@ for part in $PARTS; do
 			echo "$PASSPHRASE"
 			[ $result -eq 0 ]
 		) || exit $FAILURE
+		PASSPHRASE_READ=1
 		echo "$PASSPHRASE" | eval2 $sudo geli attach -j- \
 			-k "$nodekey" -k "$hostkey" $daN$part || exit $FAILURE
 		geli status $daN$part.eli || exit $FAILURE
