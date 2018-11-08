@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:37:16 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/Makefile 2018-11-08 12:57:51 -0800 freebsdfrau $
 #
 ############################################################ OBJECTS
 
@@ -572,11 +572,11 @@ synctousb:
 	 	eval2 sudo rsync -avSH --exclude .uuid --exclude geli   \
 	 		mnt/ mnt.usb/;                                  \
 	 else                                                           \
-	 	dirs=$$( eval2 find mnt/ -mindepth 1 -type d );         \
+	 	dirs=$$( eval2 sudo find mnt/ -mindepth 1 -type d );    \
 	 	echo "$$dirs";                                          \
 	 	echo "$$dirs" | eval2 sed -e "'s/^mnt/&.usb/'" |        \
 	 		eval2 sudo xargs mkdir -pv;                     \
-	 	files=$$( eval2 find mnt/ -type f                       \
+	 	files=$$( eval2 sudo find mnt/ -type f                  \
 	 		! -name .uuid ! -path "'*/geli/*'" );           \
 	 	echo "$$files";                                         \
 	 	echo "$$files" |                                        \
@@ -610,11 +610,11 @@ synctoimg: open
 	 	eval2 sudo rsync -avSH --exclude .uuid --exclude geli       \
 	 		mnt.usb/ mnt/;                                      \
 	 else                                                               \
-	 	dirs=$$( eval2 find mnt.usb/ -mindepth 1 -type d );         \
+	 	dirs=$$( eval2 sudo find mnt.usb/ -mindepth 1 -type d );    \
 	 	echo "$$dirs";                                              \
 	 	echo "$$dirs" | eval2 sed -e "'s/^mnt.usb/mnt/'" |          \
 	 		eval2 sudo xargs mkdir -pv;                         \
-	 	files=$$( eval2 find mnt.usb/ -type f                       \
+	 	files=$$( eval2 sudo find mnt.usb/ -type f                  \
 	 		! -name .uuid ! -path "'*/geli/*'" );               \
 	 	echo "$$files";                                             \
 	 	echo "$$files" |                                            \
