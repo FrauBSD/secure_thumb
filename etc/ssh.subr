@@ -4,7 +4,7 @@
 #
 # $Title: bash(1) subroutine file $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.subr 2018-11-08 16:22:18 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/etc/ssh.subr 2018-11-08 16:23:03 -0800 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -144,6 +144,7 @@ ssh-agent()
 quietly unalias ssh-agent-dup
 ssh-agent-dup()
 {
+	local t=1s # ssh-add(1) timeout
 	local list_all= quiet= interactive=1 noninteractive=
 	local sockets=
 	local owner socket socket_owner pid current_user
@@ -232,7 +233,7 @@ ssh-agent-dup()
 		# dump fingerprints from newly configured agent
 		if ! [ "$quiet" -o "$noninteractive" ]; then
 			echo "# NB: Use \`ssh-agent -k' to kill this agent"
-			ssh-add -l
+			timeout $t ssh-add -l
 		fi | ${LOLCAT:-cat}
 		return ${SUCCESS:-0}
 	fi
@@ -257,8 +258,9 @@ ssh-agent-dup()
 			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )
 			[ "$ucomm" = ssh-agent ] || pid=$(( $pid - 1 ))
 			nkeys=0
-			identities=$( SSH_AUTH_SOCK="$socket" ssh-add -l ) &&
-				nkeys=$( echo "$identities" | grep -c . )
+			identities=$( SSH_AUTH_SOCK="$socket" \
+				timeout $t ssh-add -l
+			) && nkeys=$( echo "$identities" | grep -c . )
 			printf "$fmt" $num: "$pid" \
 				"$( ps -p $pid -o user= )"+"$nkeys" \
 				"$( ps -p $pid -o command= )" | ${LOLCAT:-cat}
@@ -303,8 +305,8 @@ ssh-agent-dup()
 		local menu_list=
 
 		sockets=$( command ls -1t $sockets ) # descending order by age
-		menu_list=$(
-			echo "$sockets" | awk -v tags="$DIALOG_MENU_TAGS" '
+		menu_list=$( echo "$sockets" |
+			awk -v t="$t" -v tags="$DIALOG_MENU_TAGS" '
 			{
 				if (++tagn > length(tags)) exit
 				if (!match($0, /[[:digit:]]+$/)) next
@@ -316,7 +318,8 @@ ssh-agent-dup()
 				cmd | getline command
 				close(cmd)
 				nloaded = 0
-				cmd = "SSH_AUTH_SOCK=" $0 " ssh-add -l"
+				cmd = "SSH_AUTH_SOCK=" $0 \
+					" timeout " t " ssh-add -l"
 				while (cmd | getline identity) {
 					nloaded += identity ~ /^[[:digit:]]/
 				}
@@ -353,7 +356,7 @@ ssh-agent-dup()
 	if [ ! "$quiet" ]; then
 		echo "# NB: Use \`$FUNCNAME' to select a different agent"
 		echo "# NB: Use \`ssh-agent -k' to kill this agent"
-		ssh-add -l
+		timeout $t ssh-add -l
 	fi | ${LOLCAT:-cat}
 }
 
