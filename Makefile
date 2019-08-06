@@ -519,7 +519,7 @@ expand:
 	 eval2 sudo mount /dev/$${DISK}s1a mnt.usb;                 \
 	 trap="eval2 sudo umount mnt.usb && $$trap";                \
 	 trap "$$trap" EXIT;                                        \
-	 eval2 GELI_HOST_KEY_DIR=./geli sh mnt.usb/mount.sh -d;     \
+	 eval2 env GELI_HOST_KEY_DIR=./geli sh mnt.usb/mount.sh -d; \
 	 trap "eval2 sh mnt.usb/umount.sh && $$trap" EXIT;          \
 	 eval2 sudo growfs -y $${DISK}s1e.eli
 
