@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2018-11-08 13:12:37 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/Makefile 2019-08-07 11:46:23 +0430 kfvahedi $
 #
 ############################################################ OBJECTS
 
