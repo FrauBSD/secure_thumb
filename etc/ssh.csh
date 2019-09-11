@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-09-11 15:14:09 +0430 kfvahedi $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2019-09-12 00:27:36 +0430 kfvahedi $
 #
 ############################################################ INFORMATION
 #
@@ -58,8 +58,21 @@ alias eval2 'echo \!*; eval \!*'
 #
 alias csh_na 'echo "Not available for [t]csh"; false'
 alias path_munge csh_na
-alias fprintf    csh_na
-alias eprintf    csh_na
+
+# fprintf:
+#
+# Like printf, except allows you to print to a specific file-descriptor. Useful
+# for printing to stderr (fd=2) or some other known file-descriptor.
+#
+# eprintf:
+#
+# fprintf 2 "$@"
+#
+# NB: Since we cannot do file-descriptor manipulation in [t]csh, we would
+#     rather make the ``eprintf'' to function like ``printf'' and keep the
+#     code untouched.
+quietly unalias eprintf
+alias eprintf printf
 
 # dialog_menutag
 #
