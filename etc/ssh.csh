@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-09-11 11:07:54 +0430 kfvahedi $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2019-09-11 15:14:09 +0430 kfvahedi $
 #
 ############################################################ INFORMATION
 #
@@ -100,7 +100,7 @@ alias dialog_menutag "/bin/sh -c '"'                                        \\
 #
 quietly unalias dialog_menutag2help
 alias dialog_menutag2help "/bin/sh -c '"'                                   \\
-        tag="$1" tagn help                                                  \\
+        tag="$1" tagn= help=                                                \\
         shift 1 # tag                                                       \\
                                                                             \\
         while [ $# -gt 0 ]; do                                              \\
