@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:30:46 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:45:23 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -65,8 +65,8 @@ alias escape "awk '"'                                                       \\
 	BEGIN { a = sprintf("%c",39) }                                      \\
 	{                                                                   \\
 		gsub(a,"&\\\\&&")                                           \\
-		gsub(/ /,a "\\ " a)                                         \\
-		gsub(/\t/,a "$tab:q" a)                                     \\
+		gsub(/ /, a "\\ " a)                                        \\
+		gsub(/\t/, a "$tab:q" a)                                    \\
 		buf=buf a "$nl:q" a $0                                      \\
 	}                                                                   \\
 	END { print a substr(buf,8) a }                                     \\
