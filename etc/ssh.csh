@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:27:12 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:28:54 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -244,10 +244,10 @@ shfunction eprintf \
 # NB: Requires awk(1) cat(1) grep(1) id(1) ls(1) ps(1) ssh-add(1) stat(1)
 #     -- from base system
 #
-# quietly unalias ssh-agent-dup
-# shfunction ssh-agent-dup '                                                 \
-# 	: XXX TODO XXX                                                       \
-# '
+#?quietly unalias ssh-agent-dup
+#?shfunction ssh-agent-dup '                                                 \
+#?	: XXX TODO XXX                                                       \
+#?'
 
 # openkey [-hv]
 #
@@ -315,10 +315,10 @@ shfunction openkey \
 # NB: Requires eprintf() have() -- from this file
 # NB: Requires awk(1) camcontrol(8) df(1) id(1) umount(8) -- from base system
 #
-#  quietly unalias closekey
-#  shfunction closekey '                                                     \
-#  	: XXX TODO XXX                                                       \
-#  '
+#?quietly unalias closekey
+#?shfunction closekey '                                                      \
+#?	: XXX TODO XXX                                                       \
+#?'
 
 # loadkeys [OPTIONS] [key ...]
 #
@@ -342,10 +342,10 @@ shfunction openkey \
 #     ssh-agent-dup() -- from this file
 # NB: Requires awk(1) kill(1) ps(1) ssh-add(1) -- from base system
 #
-#  quietly unalias loadkeys
-#  shfunction loadkeys '                                                     \
-#  	: XXX TODO XXX                                                       \
-#  '
+#?quietly unalias loadkeys
+#?shfunction loadkeys '                                                      \
+#?	: XXX TODO XXX                                                       \
+#?'
 
 # unloadkeys [OPTIONS] [key ...]
 #
@@ -367,10 +367,10 @@ shfunction openkey \
 #     -- from this file
 # NB: Requires awk(1) ps(1) ssh-add(1) -- from base system
 #
-#  quietly unalias unloadkeys
-#  shfunction unloadkeys '                                                   \
-#  	: XXX TODO XXX                                                       \
-#  '
+#?quietly unalias unloadkeys
+#?shfunction unloadkeys '                                                    \
+#?	: XXX TODO XXX                                                       \
+#?'
 
 # dialog_menutag
 #
