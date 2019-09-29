@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-09-29 11:06:08 +0330 kfvahedi $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 13:25:41 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -41,6 +41,14 @@ set DIALOG_MENU_TAGS = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #
 if ( ! $?DIALOG_TMPDIR ) set DIALOG_TMPDIR = "/tmp"
 
+#
+# Literals
+# NB: Required by escape alias
+#
+set tab = "	" # Must be a literal tab
+set nl = "\
+" # END-QUOTE
+
 ############################################################ ALIASES
 
 unalias quietly >& /dev/null
@@ -51,6 +59,18 @@ alias have 'which \!* >& /dev/null'
 
 quietly unalias eval2
 alias eval2 'echo \!*; eval \!*'
+
+quietly unalias escape
+alias escape "awk '"'                                                       \\
+	BEGIN { a = sprintf("%c",39) }                                      \\
+	{                                                                   \\
+		gsub(a,"&\\\\&&")                                           \\
+		gsub(/ /,a "\\ " a)                                         \\
+		gsub(/\t/,a "$tab:q" a)                                     \\
+		buf=buf a "$nl:q" a $0                                      \\
+	}                                                                   \\
+	END { print a substr(buf,8) a }                                     \\
+'\'
 
 # ssh-agent [ssh-agent options]
 #
@@ -102,6 +122,21 @@ quietly unalias function
 alias function "set argv_function = (\!*); "$alias_function:q
 
 ############################################################ FUNCTIONS
+
+# cmdsubst $var $cmd $rest_ignored
+#
+# Evaluate $cmd (single argument) via /bin/sh and store the results in $var.
+#
+# NB: Like set $var = `$cmd:q` except output of $cmd is not mangled.
+# NB: Requires escape alias (from this file)
+#
+quietly unalias cmdsubst
+function cmdsubst '                                                          \
+	set __var = $argv_cmdsubst[1]                                        \
+	set __cmd = $argv_cmdsubst[2]:q                                      \
+	set __out = `/bin/sh -c $__cmd:q | escape`                           \
+	eval set $__var = $__out:q                                           \
+'
 
 # shfunction $name $code
 #
