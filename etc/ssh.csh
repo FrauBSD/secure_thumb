@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:45:23 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 16:29:46 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -180,9 +180,9 @@ function shfunction '                                                        \
 	set __alias = shalias_$__var                                         \
 	set __func = shfunc_$__var                                           \
 	set __interp = "env $__penv:q /bin/sh -c "\"\$"${__alias}:q"\"       \
-	set __body = "$__name(){ local FUNCNAME=$__name; $__body:q }"        \
+	set __body = "$__var(){ local FUNCNAME=$__var; $__body:q }"          \
 	set $__func = $__body:q                                              \
-	set $__alias = $__body:q\;\ $__name\ \"\$@\"                         \
+	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
 	have $__name || eval alias $__name "'\''$__interp /bin/sh'\''"       \
 '
 
@@ -206,9 +206,9 @@ function eshfunction '                                                       \
 	set __alias = shalias_$__var                                         \
 	set __func = shfunc_$__var                                           \
 	set __interp = "$__penv:q "\"\$"${__alias}:q"\"                      \
-	set __body = "$__name(){ local FUNCNAME=$__name; $__body:q }"        \
+	set __body = "$__var(){ local FUNCNAME=$__var; $__body:q }"          \
 	set $__func = $__body:q                                              \
-	set $__alias = $__body:q\;\ $__name\ \"\$@\"                         \
+	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
 	have $__name || eval alias $__name "evalsubst '\''$__interp'\''"     \
 '
 
