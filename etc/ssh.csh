@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:23:14 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:25:03 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -147,7 +147,7 @@ function cmdsubst '                                                          \
 # shfunction $name $code
 #
 # Define a ``function'' that runs under /bin/sh.
-# NB: There must be a literal newline at the end.
+# NB: There must be a literal newline or semi-colon at the end.
 # NB: No alias is created if one already exists.
 #
 quietly unalias shfunction
