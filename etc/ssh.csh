@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:28:54 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:30:46 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -144,6 +144,24 @@ function cmdsubst '                                                          \
 	eval set $__var = $__out:q                                           \
 '
 
+# evalsubst [$env] $cmd
+#
+# Execute $cmd via /bin/sh and evaluate the results.
+# Like "set $var = `env $env /bin/sh -c $cmd:q`" except output is preserved.
+#
+# NB: Requires escape alias -- from this file
+# NB: Requires /bin/sh -- from base system
+#
+quietly unalias evalsubst
+function evalsubst '                                                         \
+	set __argc = $#argv_evalsubst                                        \
+	@ __argc--                                                           \
+	set __penv = ($argv_evalsubst[1-$__argc])                            \
+	@ __argc++                                                           \
+	eval eval `env $__penv:q /bin/sh -c                                 \\
+		$argv_evalsubst[$__argc]:q | escape`                         \
+'
+
 # shfunction $name $code
 #
 # Define a ``function'' that runs under /bin/sh.
@@ -166,6 +184,32 @@ function shfunction '                                                        \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__name\ \"\$@\"                         \
 	have $__name || eval alias $__name "'\''$__interp /bin/sh'\''"       \
+'
+
+# eshfunction $name $code
+#
+# Define a ``function'' that runs under /bin/sh but produces output that is
+# evaluated in the current shell's namespace.
+#
+# NB: There must be a literal newline or semi-colon at the end.
+# NB: No alias is created if one already exists.
+#
+quietly unalias eshfunction
+function eshfunction '                                                       \
+	set __name = $argv_eshfunction[1]                                    \
+	set __argc = $#argv_eshfunction                                      \
+	@ __argc--                                                           \
+	set __penv = ($argv_eshfunction[2-$__argc]:q)                        \
+	@ __argc++                                                           \
+	set __body = $argv_eshfunction[$__argc]:q                            \
+	set __var = "$__name:as/-/_/"                                        \
+	set __alias = shalias_$__var                                         \
+	set __func = shfunc_$__var                                           \
+	set __interp = "$__penv:q "\"\$"${__alias}:q"\"                      \
+	set __body = "$__name(){ local FUNCNAME=$__name; $__body:q }"        \
+	set $__func = $__body:q                                              \
+	set $__alias = $__body:q\;\ $__name\ \"\$@\"                         \
+	have $__name || eval alias $__name "evalsubst '\''$__interp'\''"     \
 '
 
 # quietly $cmd ...
