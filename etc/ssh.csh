@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:25:03 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:27:12 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -172,25 +172,19 @@ function shfunction '                                                        \
 #
 # Execute /bin/sh $cmd while sending stdout and stderr to /dev/null.
 #
-shfunction quietly '                                                         \
-	"$@" > /dev/null 2>&1                                                \
-'
+shfunction quietly '"$@" > /dev/null 2>&1;'
 
 # have name
 #
 # Silently test for name as an available command, builtin, or other executable.
 #
-shfunction have '                                                            \
-	type "$@" > /dev/null 2>&1                                           \
-'
+shfunction have 'type "$@" > /dev/null 2>&1;'
 
 # eval2 $cmd ...
 #
 # Print $cmd on stdout before executing it. 
 #
-shfunction eval2 '                                                           \
-	echo "$*"; eval "$@"                                                 \
-'
+shfunction eval2 'echo "$*"; eval "$@";'
 
 # fprintf $fd $fmt [ $opts ... ]
 #
