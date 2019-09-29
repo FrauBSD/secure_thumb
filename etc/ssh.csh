@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 13:25:41 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 15:23:14 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -123,18 +123,24 @@ alias function "set argv_function = (\!*); "$alias_function:q
 
 ############################################################ FUNCTIONS
 
-# cmdsubst $var $cmd $rest_ignored
+# cmdsubst $var [$env] $cmd
 #
-# Evaluate $cmd (single argument) via /bin/sh and store the results in $var.
+# Evaluate $cmd via /bin/sh and store the results in $var.
+# Like "set $var = `env $env /bin/sh -c $cmd:q`" except output is preserved.
 #
-# NB: Like set $var = `$cmd:q` except output of $cmd is not mangled.
-# NB: Requires escape alias (from this file)
+# NB: This function is unused in this file
+# NB: Requires escape alias -- from this file
+# NB: Requires /bin/sh -- from base system
 #
 quietly unalias cmdsubst
 function cmdsubst '                                                          \
 	set __var = $argv_cmdsubst[1]                                        \
-	set __cmd = $argv_cmdsubst[2]:q                                      \
-	set __out = `/bin/sh -c $__cmd:q | escape`                           \
+	set __argc = $#argv_cmdsubst                                         \
+	@ __argc--                                                           \
+	set __penv = ($argv_cmdsubst[2-$__argc]:q)                           \
+	@ __argc++                                                           \
+	set __cmd = $argv_cmdsubst[$__argc]:q                                \
+	set __out = `env $__penv:q /bin/sh -c $__cmd:q | escape`             \
 	eval set $__var = $__out:q                                           \
 '
 
