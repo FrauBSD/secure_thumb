@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 17:35:48 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 19:09:34 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -43,7 +43,7 @@ if ( ! $?DIALOG_TMPDIR ) set DIALOG_TMPDIR = "/tmp"
 
 #
 # Literals
-# NB: Required by escape alias
+# NB: Required by escape, shfunction, and eshfunction
 #
 set tab = "	" # Must be a literal tab
 set nl = "\
@@ -166,7 +166,6 @@ function evalsubst '                                                         \
 # shfunction $name $code
 #
 # Define a ``function'' that runs under /bin/sh.
-# NB: There must be a literal newline or semi-colon at the end.
 # NB: No alias is created if one already exists.
 #
 quietly unalias shfunction
@@ -181,7 +180,8 @@ function shfunction '                                                        \
 	set __alias = shalias_$__var                                         \
 	set __func = shfunc_$__var                                           \
 	set __interp = "env $__penv:q /bin/sh -c "\"\$"${__alias}:q"\"       \
-	set __body = "$__var(){ local FUNCNAME=$__var; $__body:q }"          \
+	set __body = "local FUNCNAME=$__var; $__body:q"                      \
+	set __body = "$__var(){$nl:q$__body:q$nl:q}"                         \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
 	have $__name || alias $__name "$__interp /bin/sh"                    \
@@ -192,7 +192,6 @@ function shfunction '                                                        \
 # Define a ``function'' that runs under /bin/sh but produces output that is
 # evaluated in the current shell's namespace.
 #
-# NB: There must be a literal newline or semi-colon at the end.
 # NB: No alias is created if one already exists.
 #
 quietly unalias eshfunction
@@ -208,7 +207,8 @@ function eshfunction '                                                       \
 	set __func = shfunc_$__var                                           \
 	set __interp = "env $__penv:q /bin/sh -c "\"\$"${__alias}:q"\"       \
 	set __interp = "$__interp:q /bin/sh \!"\*                            \
-	set __body = "$__var(){ local FUNCNAME=$__var; $__body:q }"          \
+	set __body = "local FUNCNAME=$__var; $__body:q"                      \
+	set __body = "$__var(){$nl:q$__body:q$nl:q}"                         \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
 	have $__name || alias $__name '\''eval `'\''$__interp:q'\''`'\''     \
@@ -218,19 +218,19 @@ function eshfunction '                                                       \
 #
 # Execute /bin/sh $cmd while sending stdout and stderr to /dev/null.
 #
-shfunction quietly '"$@" > /dev/null 2>&1;'
+shfunction quietly '"$@" > /dev/null 2>&1'
 
 # have name
 #
 # Silently test for name as an available command, builtin, or other executable.
 #
-shfunction have 'type "$@" > /dev/null 2>&1;'
+shfunction have 'type "$@" > /dev/null 2>&1'
 
 # eval2 $cmd ...
 #
 # Print $cmd on stdout before executing it. 
 #
-shfunction eval2 'echo "$*"; eval "$@";'
+shfunction eval2 'echo "$*"; eval "$@"'
 
 # fprintf $fd $fmt [ $opts ... ]
 #
