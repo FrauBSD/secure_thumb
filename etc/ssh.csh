@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 20:13:53 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 21:05:16 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -123,7 +123,7 @@ alias function "set argv_function = (\!*); "$alias_function:q
 
 ############################################################ FUNCTIONS
 
-# cmdsubst $var [$env] $cmd
+# cmdsubst $var [$env ...] $cmd
 #
 # Evaluate $cmd via /bin/sh and store the results in $var.
 # Like "set $var = `env $env /bin/sh -c $cmd:q`" except output is preserved.
@@ -144,7 +144,7 @@ function cmdsubst '                                                          \
 	eval set $__var = $__out:q                                           \
 '
 
-# evalsubst [$env] $cmd
+# evalsubst [$env ...] $cmd
 #
 # Execute $cmd via /bin/sh and evaluate the results.
 # Like "set $var = `env $env /bin/sh -c $cmd:q`" except output is preserved.
@@ -233,7 +233,7 @@ shfunction have 'type "$@" > /dev/null 2>&1'
 #
 shfunction eval2 'echo "$*"; eval "$@"'
 
-# fprintf $fd $fmt [ $opts ... ]
+# fprintf $fd $fmt [$opts ...]
 #
 # Like printf, except allows you to print to a specific file-descriptor. Useful
 # for printing to stderr (fd=2) or some other known file-descriptor.
@@ -246,7 +246,7 @@ shfunction fprintf '                                                         \
 	printf "$@" >&$fd                                                    \
 '
 
-# eprintf $fmt [ $opts ... ]
+# eprintf $fmt [$opts ...]
 #
 # Like printf, except send output to stderr (fd=2).
 #
