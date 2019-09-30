@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 16:29:46 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 17:35:48 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -114,7 +114,7 @@ set alias_function = '                                                       \
 	set __argv = argv_$__var                                             \
 	set __alias = alias_$__var                                           \
 	set __body = "set ALIASNAME = $__name; "$__body:q                    \
-	eval alias $__name "'\''set $__argv = (\\\!*);'\''"\$__body:q        \
+	alias $__name "set $__argv = (\!"\*");"$__body:q                     \
 	unset $__alias                                                       \
 	set $__alias = $__body:q                                             \
 '
@@ -149,6 +149,7 @@ function cmdsubst '                                                          \
 # Execute $cmd via /bin/sh and evaluate the results.
 # Like "set $var = `env $env /bin/sh -c $cmd:q`" except output is preserved.
 #
+# NB: This function is unused in this file
 # NB: Requires escape alias -- from this file
 # NB: Requires /bin/sh -- from base system
 #
@@ -183,7 +184,7 @@ function shfunction '                                                        \
 	set __body = "$__var(){ local FUNCNAME=$__var; $__body:q }"          \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
-	have $__name || eval alias $__name "'\''$__interp /bin/sh'\''"       \
+	have $__name || alias $__name "$__interp /bin/sh"                    \
 '
 
 # eshfunction $name $code
@@ -205,11 +206,12 @@ function eshfunction '                                                       \
 	set __var = "$__name:as/-/_/"                                        \
 	set __alias = shalias_$__var                                         \
 	set __func = shfunc_$__var                                           \
-	set __interp = "$__penv:q "\"\$"${__alias}:q"\"                      \
+	set __interp = "env $__penv:q /bin/sh -c "\"\$"${__alias}:q"\"       \
+	set __interp = "$__interp:q /bin/sh \!"\*                            \
 	set __body = "$__var(){ local FUNCNAME=$__var; $__body:q }"          \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
-	have $__name || eval alias $__name "evalsubst '\''$__interp'\''"     \
+	have $__name || alias $__name '\''eval `'\''$__interp:q'\''`'\''     \
 '
 
 # quietly $cmd ...
