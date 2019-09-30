@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 19:11:31 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 19:14:03 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -206,12 +206,13 @@ function eshfunction '                                                       \
 	set __alias = shalias_$__var                                         \
 	set __func = shfunc_$__var                                           \
 	set __interp = "env $__penv:q /bin/sh -c "\"\$"${__alias}:q"\"       \
-	set __interp = "$__interp:q /bin/sh \!"\*                            \
+	set __interp = "$__interp:q /bin/sh \!"\*" | escape"                 \
 	set __body = "local FUNCNAME=$__var ALIASNAME=$__name; $__body:q"    \
 	set __body = "$__var(){$nl:q$__body:q$nl:q}"                         \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
-	have $__name || alias $__name '\''eval `'\''$__interp:q'\''`'\''     \
+	have $__name || alias $__name                                       \\
+		'\''eval eval `'\''$__interp:q'\''`'\''                      \
 '
 
 # quietly $cmd ...
