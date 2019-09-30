@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 19:14:03 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 20:13:53 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -285,16 +285,272 @@ shfunction eprintf \
 #
 # If `-n' is present, run non-interactively (good for scripts; pedantic).
 #
-# NB: Requires dialog_menutag() dialog_menutag2help() eval2() have()
-#     -- from this file
+# NB: Requires cexport() dialog_menutag() dialog_menutag2help() have()
+#     quietly() -- from this file
 # NB: Requires $DIALOG_TMPDIR $DIALOG_MENU_TAGS -- from this file
 # NB: Requires awk(1) cat(1) grep(1) id(1) ls(1) ps(1) ssh-add(1) stat(1)
 #     -- from base system
 #
-#?quietly unalias ssh-agent-dup
-#?shfunction ssh-agent-dup '                                                 \
-#?	: XXX TODO XXX                                                       \
-#?'
+shfunction cexport '                                                         \
+	local item key value                                                 \
+	while [ $# -gt 0 ]; do                                               \
+		item="$1"                                                    \
+		key="${item%%=*}"                                            \
+		value="${item#"$key"=}"                                      \
+		if [ "$interactive" ]; then                                  \
+			echo "setenv $key $value" >&2                        \
+		fi                                                           \
+		echo "setenv $key $value"                                    \
+		export "$item"                                               \
+		shift 1 # item                                               \
+	done                                                                 \
+'
+quietly unalias cexport # sh only
+quietly unalias ssh-agent-dup
+eshfunction ssh-agent-dup \
+	'DIALOG_MENU_TAGS=$DIALOG_MENU_TAGS:q' \
+	'DIALOG_TMPDIR=$DIALOG_TMPDIR:q' \
+	'__cexport=$shfunc_cexport:q' \
+	'__dialog_menutag=$shfunc_dialog_menutag:q' \
+	'__dialog_menutag2help=$shfunc_dialog_menutag2help:q' \
+	'__have=$shfunc_have:q' \
+	'__quietly=$shfunc_quietly:q' \
+' \
+	eval "$__cexport"                                                    \
+	eval "$__dialog_menutag"                                             \
+	eval "$__dialog_menutag2help"                                        \
+	eval "$__have"                                                       \
+	eval "$__quietly"                                                    \
+	                                                                     \
+	local t=1s # ssh-add(1) timeout                                      \
+	local list_all= quiet= interactive=1 noninteractive=                 \
+	local sockets=                                                       \
+	local ucomm owner socket owner pid current_user                      \
+	                                                                     \
+	local OPTIND=1 OPTARG flag                                           \
+	while getopts anq flag; do                                           \
+		case "$flag" in                                              \
+		a) list_all=1 ;;                                             \
+		n) noninteractive=1 interactive= ;;                          \
+		q) quiet=1 ;;                                                \
+		\?|*)                                                        \
+			[ "$noninteractive" ] ||                             \
+				echo "$ALIASNAME [-aq]" | ${LOLCAT:-cat} >&2 \
+			return ${FAILURE:-1}                                 \
+		esac                                                         \
+	done                                                                 \
+	shift $(( $OPTIND - 1 ))                                             \
+	                                                                     \
+	case "$UNAME_s" in                                                   \
+	*BSD) owner="-f%Su" ;;                                               \
+	*) owner="-c%U"                                                      \
+	esac                                                                 \
+	                                                                     \
+	current_user=$( id -nu )                                             \
+	for socket in /tmp/ssh-*/agent.[0-9]*; do                            \
+		# Must exist as a socket                                     \
+		[ -S "$socket" ] || continue                                 \
+		                                                             \
+		# Must end in numbers-only (after trailing dot)              \
+		pid="${socket##*.}"                                          \
+		[ "$pid" -a "$pid" = "${pid#*[\!0-9]}" ] || continue         \
+		pid=$(( $pid + 1 )) # socket num is one below agent PID      \
+		                                                             \
+		# Must be a running pid and an ssh or ssh-agent              \
+		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )                 \
+		if ! [ "$ucomm" = ssh-agent ]; then                          \
+			# This could be a forwarded agent                    \
+			pid=$(( $pid - 1 ))                                  \
+			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
+			[ "$ucomm" = sshd ] || continue                      \
+		fi                                                           \
+		                                                             \
+		# Must be owned by the current user unless -a is used        \
+		# NB: When -a is used, the socket still has to be readable   \
+		if [ ! "$list_all" ]; then                                   \
+			owner=$( stat $owner "$socket" 2> /dev/null ) ||     \
+				continue                                     \
+			[ "$owner" = "$current_user" ] || continue           \
+		fi                                                           \
+		                                                             \
+		sockets="$sockets $socket"                                   \
+	done                                                                 \
+	                                                                     \
+	sockets="${sockets# }"                                               \
+	if [ ! "$sockets" ]; then                                            \
+		if [ ! "$noninteractive" ]; then                             \
+			local msg="$ALIASNAME: No agent sockets available"   \
+			echo "$msg" | ${LOLCAT:-cat} >&2                     \
+		fi                                                           \
+		return ${FAILURE:-1}                                         \
+	fi                                                                   \
+	if [ "${sockets}" = "${sockets%% *}" ]; then                         \
+		# Only one socket found                                      \
+		pid=$(( ${sockets##*.} + 1 ))                                \
+		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )                 \
+		if [ "$ucomm" = ssh-agent ]; then                            \
+			cexport SSH_AUTH_SOCK="$sockets"                 \\\\\
+				SSH_AGENT_PID="$pid"                         \
+		else                                                         \
+			# This could be a forwarded agent                    \
+			pid=$(( $pid - 1 ))                                  \
+			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
+			if [ "$ucomm" = sshd ]; then                         \
+				cexport SSH_AUTH_SOCK="$sockets"         \\\\\
+					SSH_AGENT_PID="$pid"                 \
+			else                                                 \
+				cexport SSH_AUTH_SOCK="$sockets"             \
+			fi                                                   \
+		fi                                                           \
+		[ "$SSH_AGENT_PID" -a ! "$quiet" ] && # show process         \
+			[ "$interactive" ] &&                                \
+			ps -p "$SSH_AGENT_PID" | ${LOLCAT:-cat} >&2          \
+		# dump fingerprints from newly configured agent              \
+		if ! [ "$quiet" -o "$noninteractive" ]; then                 \
+			echo "# NB: Use \`ssh-agent -k'\''"              \\\\\
+			     "to kill this agent"                            \
+			if have timeout; then                                \
+				timeout $t ssh-add -l                        \
+			else                                                 \
+				ssh-add -l                                   \
+			fi                                                   \
+		fi | ${LOLCAT:-cat} >&2                                      \
+		return ${SUCCESS:-0}                                         \
+	fi                                                                   \
+	                                                                     \
+	# There is more than one agent available                             \
+	[ "$noninteractive" ] && return ${FAILURE:-1}                        \
+	                                                                     \
+	#                                                                    \
+	# If we do not have dialog(1), just print the possible values        \
+	#                                                                    \
+	if ! have dialog; then                                               \
+		local prefix="%3s"                                           \
+		local fmt="$prefix %5s %-20s %s\n"                           \
+		local num=0 choice                                           \
+		local identities nloaded                                     \
+		                                                             \
+		sockets=$( command ls -tr $sockets ) # asc order by age      \
+		printf "$fmt" "" PID USER+NKEYS COMMAND >&2                  \
+		for socket in $sockets; do                                   \
+			num=$(( $num + 1 ))                                  \
+			pid=$(( ${socket##*.} + 1 ))                         \
+			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
+			[ "$ucomm" = ssh-agent ] || pid=$(( $pid - 1 ))      \
+			nkeys=0                                              \
+			identities=$(                                        \
+				unset interactive                            \
+				cexport SSH_AUTH_SOCK="$socket"              \
+				if have timeout; then                        \
+					timeout $t ssh-add -l                \
+				else                                         \
+					ssh-add -l                           \
+				fi                                           \
+			) && nkeys=$( echo "$identities" | grep -c . )       \
+			printf "$fmt" $num: "$pid"                       \\\\\
+				"$( ps -p $pid -o user= )"+"$nkeys"      \\\\\
+				"$( ps -p $pid -o command= )" |              \
+				${LOLCAT:-cat} >&2                           \
+		done                                                         \
+		echo >&2                                                     \
+		echo -n "Select a number [$num]: " | ${LOLCAT:-cat} >&2      \
+		read choice                                                  \
+		: ${choice:=$num}                                            \
+		case "$choice" in                                            \
+		""|*[\!0-9]*)                                                \
+			echo "$ALIASNAME: Invalid choice [$choice]" |        \
+				${LOLCAT:-cat} >&2                           \
+			return ${FAILURE:-1} ;;                              \
+		esac                                                         \
+		if [ $choice -gt $num -o $choice -lt 1 ]; then               \
+			echo "$ALIASNAME: Choice out of range [$choice]" |   \
+				${LOLCAT:-cat} >&2                           \
+			return ${FAILURE:-1}                                 \
+		fi                                                           \
+		set -- $sockets                                              \
+		eval socket=\"\${$choice}\"                                  \
+		                                                             \
+		pid=$(( ${socket##*.} + 1 ))                                 \
+		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )                 \
+		if [ "$ucomm" = ssh-agent ]; then                            \
+			cexport SSH_AUTH_SOCK="$socket"                  \\\\\
+				SSH_AGENT_PID="$pid"                         \
+		else                                                         \
+			# This could be a forwarded agent                    \
+			pid=$(( $pid - 1 ))                                  \
+			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
+			if [ "$ucomm" = sshd ]; then                         \
+				cexport SSH_AUTH_SOCK="$socket"          \\\\\
+					SSH_AGENT_PID="$pid"                 \
+			else                                                 \
+				cexport SSH_AUTH_SOCK="$socket"              \
+			fi                                                   \
+		fi                                                           \
+	else                                                                 \
+		local menu_list=                                             \
+		                                                             \
+		sockets=$( command ls -1t $sockets ) # desc order by age     \
+		have timeout || t=                                           \
+		menu_list=$( echo "$sockets" |                               \
+			awk -v t="$t" -v tags="$DIALOG_MENU_TAGS" '\''       \
+			{                                                    \
+				if (++tagn > length(tags)) exit              \
+				if (\!match($0, /[[:digit:]]+$/)) next       \
+				pid = substr($0, RSTART, RLENGTH) + 1        \
+				cmd = sprintf("ps -p %u -o user=", pid)      \
+				cmd | getline user                           \
+				close(cmd)                                   \
+				cmd = sprintf("ps -p %u -o command=", pid)   \
+				cmd | getline command                        \
+				close(cmd)                                   \
+				nloaded = 0                                  \
+				cmd = "SSH_AUTH_SOCK=" $0                    \
+				if (t != "") cmd = cmd " timeout " t         \
+				cmd = cmd " ssh-add -l"                      \
+				while (cmd | getline identity) {             \
+					nloaded += identity ~ /^[[:digit:]]/ \
+				}                                            \
+				close(cmd)                                   \
+				printf "'\''\'\''%s\'\''\ \'\''%s\'\''\ \'\''%s\'\'''\''\n", \
+					substr(tags, tagn, 1),               \
+					sprintf("pid %u %s+%u %s", pid,      \
+						user, nloaded, command),     \
+					sprintf("%s %s",                     \
+						"SSH_AUTH_SOCK=" $0,         \
+						"SSH_AGENT_PID=" pid)        \
+			}'\''                                                \
+		)                                                            \
+		                                                             \
+		local prompt="Pick an ssh-agent to duplicate (user+nkeys):"  \
+		eval dialog                                              \\\\\
+			--clear --title "'\''$ALIASNAME'\''" --item-help \\\\\
+			--menu "'\''$prompt'\''" 17 55 9 $menu_list      \\\\\
+			>&2 2> "$DIALOG_TMPDIR/dialog.menu.$$"               \
+		local retval=$?                                              \
+		                                                             \
+		# Return if "Cancel" (-1) or ESC (255)                       \
+		[ $retval -eq ${SUCCESS:-0} ] || return $retval              \
+		                                                             \
+		local tag="$( dialog_menutag )"                              \
+		cexport $( eval dialog_menutag2help                      \\\\\
+			"'\''$tag'\''" $menu_list )                          \
+	fi                                                                   \
+	                                                                     \
+	# Attempt to show the running agent                                  \
+	[ "$SSH_AGENT_PID" -a ! "$quiet" ] &&                                \
+		ps -p "$SSH_AGENT_PID" | ${LOLCAT:-cat} >&2                  \
+	                                                                     \
+	# Attempt to dump fingerprints from newly configured agent           \
+	if [ ! "$quiet" ]; then                                              \
+		echo "# NB: Use \`$ALIASNAME'\'' to select different agent"  \
+		echo "# NB: Use \`ssh-agent -k'\'' to kill this agent"       \
+		if have timeout; then                                        \
+			timeout $t ssh-add -l                                \
+		else                                                         \
+			ssh-add -l                                           \
+		fi                                                           \
+	fi | ${LOLCAT:-cat} >&2                                              \
+'
 
 # openkey [-hv]
 #
