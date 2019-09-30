@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 19:09:34 -0700 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 19:11:31 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -180,7 +180,7 @@ function shfunction '                                                        \
 	set __alias = shalias_$__var                                         \
 	set __func = shfunc_$__var                                           \
 	set __interp = "env $__penv:q /bin/sh -c "\"\$"${__alias}:q"\"       \
-	set __body = "local FUNCNAME=$__var; $__body:q"                      \
+	set __body = "local FUNCNAME=$__var ALIASNAME=$__name; $__body:q"    \
 	set __body = "$__var(){$nl:q$__body:q$nl:q}"                         \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
@@ -207,7 +207,7 @@ function eshfunction '                                                       \
 	set __func = shfunc_$__var                                           \
 	set __interp = "env $__penv:q /bin/sh -c "\"\$"${__alias}:q"\"       \
 	set __interp = "$__interp:q /bin/sh \!"\*                            \
-	set __body = "local FUNCNAME=$__var; $__body:q"                      \
+	set __body = "local FUNCNAME=$__var ALIASNAME=$__name; $__body:q"    \
 	set __body = "$__var(){$nl:q$__body:q$nl:q}"                         \
 	set $__func = $__body:q                                              \
 	set $__alias = $__body:q\;\ $__var\ \"\$@\"                          \
@@ -314,13 +314,13 @@ shfunction openkey \
 	eval "$__eval2"                                                      \
 	eval "$__have"                                                       \
 	[ "$UNAME_s" = "FreeBSD" ] ||                                        \
-		{ echo "$FUNCNAME: FreeBSD only!" >&2; return 1; }           \
+		{ echo "$ALIASNAME: FreeBSD only!" >&2; return 1; }          \
 	local OPTIND=1 OPTARG flag verbose= sudo=                            \
 	while getopts hv flag; do                                            \
 		case "$flag" in                                              \
 		v) verbose=1 ;;                                              \
 		*) local optfmt="\t%-4s %s\n"                                \
-		   eprintf "Usage: $FUNCNAME [-hv]\n"                        \
+		   eprintf "Usage: $ALIASNAME [-hv]\n"                       \
 		   eprintf "OPTIONS:\n"                                      \
 		   eprintf "$optfmt" "-h" \                                  \
 		           "Print this text to stderr and return."           \
@@ -336,7 +336,7 @@ shfunction openkey \
 		elif have sudo; then                                         \
 			sudo=sudo                                            \
 		fi || {                                                      \
-			eprintf "$FUNCNAME: not enough privileges\n"         \
+			eprintf "$ALIASNAME: not enough privileges\n"        \
 			return ${FAILURE:-1}                                 \
 		}                                                            \
 	fi                                                                   \
