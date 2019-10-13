@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-09-29 21:05:16 -0700 freebsdfrau $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 21:16:02 +0330 kfvahedi $
 #
 ############################################################ INFORMATION
 #
@@ -147,7 +147,7 @@ function cmdsubst '                                                          \
 # evalsubst [$env ...] $cmd
 #
 # Execute $cmd via /bin/sh and evaluate the results.
-# Like "set $var = `env $env /bin/sh -c $cmd:q`" except output is preserved.
+# Like "eval `env $env /bin/sh -c $cmd:q`” except output is preserved.
 #
 # NB: This function is unused in this file
 # NB: Requires escape alias -- from this file
