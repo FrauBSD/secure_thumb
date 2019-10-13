@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 21:16:02 +0330 kfvahedi $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 21:25:52 +0330 kfvahedi $
 #
 ############################################################ INFORMATION
 #
@@ -147,7 +147,7 @@ function cmdsubst '                                                          \
 # evalsubst [$env ...] $cmd
 #
 # Execute $cmd via /bin/sh and evaluate the results.
-# Like "eval `env $env /bin/sh -c $cmd:q`” except output is preserved.
+# Like "eval `env $env /bin/sh -c $cmd:q`" except output is preserved.
 #
 # NB: This function is unused in this file
 # NB: Requires escape alias -- from this file
@@ -618,10 +618,92 @@ shfunction openkey \
 # NB: Requires eprintf() have() -- from this file
 # NB: Requires awk(1) camcontrol(8) df(1) id(1) umount(8) -- from base system
 #
-#?quietly unalias closekey
-#?shfunction closekey '                                                      \
-#?	: XXX TODO XXX                                                       \
-#?'
+quietly unalias closekey
+shfunction closekey \
+	'__fprintf=$shfunc_fprintf:q' \
+	'__eprintf=$shfunc_eprintf:q' \
+	'__have=$shfunc_have:q' \
+'                                                                            \
+	eval "$__fprintf"                                                    \
+	eval "$__eprintf"                                                    \
+	eval "$__have"                                                       \
+	local OPTIND=1 OPTARG flag eject= verbose= sudo=                     \
+	while getopts ehv flag; do                                           \
+		case "$flag" in                                              \
+		e) eject=1 ;;                                                \
+		v) verbose=1 ;;                                              \
+		*) local optfmt="\t%-4s %s\n"                                \
+		   eprintf "Usage: $ALIASNAME [-ehv]\n"                      \
+		   eprintf "OPTIONS:\n"                                      \
+		   eprintf "$optfmt" "-e" \                                  \
+		           "Eject USB media (using "\`"camcontrol eject'\'')." \
+		   eprintf "$optfmt" "-h" \                                  \
+		           "Print this text to stderr and return."           \
+		   eprintf "$optfmt" "-v" \                                  \
+		           "Print verbose debugging information."            \
+		   return ${FAILURE:-1}                                      \
+		esac                                                         \
+	done                                                                 \
+	shift $(( $OPTIND - 1 ))                                             \
+	if [ "$( id -u )" != "0" ]; then                                     \
+		if have sr; then                                             \
+			sudo=sr                                              \
+		elif have sudo; then                                         \
+			sudo=sudo                                            \
+		fi || {                                                      \
+			eprintf "$ALIASNAME: not enough privileges\n"        \
+			return ${FAILURE:-1}                                 \
+		}                                                            \
+	fi                                                                   \
+	[ ! -f "/mnt/umount.sh" ] ||                                         \
+		${verbose:+eval2} /mnt/umount.sh ${verbose:+-v} || return    \
+	[ ! "$eject" ] || daN=$( df -l /mnt | awk '\''                      \\
+		$NF == "/mnt" && match($0, "^/dev/[[:alpha:]]+[[:digit:]]+") { \\
+			print substr($0, 6, RLENGTH - 5)                    \\
+			exit found++                                        \\
+		} END { exit ! found }                                      \\
+	'\'' ) || daN=$(                                                     \
+		[ "$sudo" -a "$verbose" ] && echo $sudo camcontrol devlist >&2 \
+		$sudo camcontrol devlist | awk '\''                         \\
+		BEGIN {                                                     \\
+			camfmt = "^<%s>[[:space:]]+[^(]*"                   \\
+	                                                                    \\
+			disk[nfind = 0] = "da[[:digit:]]+"                  \\
+			find[nfind++] = "USB Flash Disk 1100"               \\
+	                                                                    \\
+			#disk[nfind] = "device_pattern"                     \\
+			#find[nfind++] = "model_pattern"                    \\
+		}                                                           \\
+		found = 0                                                   \\
+		{                                                           \\
+			for (n = 0; n < nfind; n++)                         \\
+			{                                                   \\
+				if (\!match($0, sprintf(camfmt, find[n])))  \\
+					continue                            \\
+				devicestr = substr($0, RSTART + RLENGTH + 1)\\
+				gsub(/\).*/, "", devicestr)                 \\
+				ndevs = split(devicestr, devices, /,/)      \\
+				for (d = 1; d <= ndevs; d++) {              \\
+					if (devices[d] !~ "^" disk[n] "$")  \\
+						continue                    \\
+					found = 1                           \\
+					break                               \\
+				}                                           \\
+				if (found) break                            \\
+			}                                                   \\
+		}                                                           \\
+		found && $0 = devices[d] { print; exit }                    \\
+		END { exit \!found }                                        \\
+	'\'' ) || return                                                    \\
+	[ ! -f "/mnt/umount.sh" ] ||                                         \
+		${verbose:+eval2} /mnt/umount.sh ${verbose:+-v} || return    \
+	! df -l /mnt | awk '\''                                             \\
+	               $NF=="/mnt"{exit found++}END{exit \!found}'\'' ||     \
+		${verbose:+eval2} $sudo umount /mnt || return                \
+	[ "$eject" -a "$daN" ] &&                                            \
+		${verbose:+eval2} $sudo camcontrol eject "$daN"              \
+	return ${SUCCESS:-0}                                                 \
+'
 
 # loadkeys [OPTIONS] [key ...]
 #
