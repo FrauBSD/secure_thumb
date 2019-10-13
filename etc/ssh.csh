@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 23:19:17 +0330 kfvahedi $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 23:57:20 +0330 kfvahedi $
 #
 ############################################################ INFORMATION
 #
@@ -752,10 +752,82 @@ shfunction closekey \
 #     -- from this file
 # NB: Requires awk(1) ps(1) ssh-add(1) -- from base system
 #
-#?quietly unalias unloadkeys
-#?shfunction unloadkeys '                                                    \
-#?	: XXX TODO XXX                                                       \
-#?'
+quietly unalias unloadkeys
+shfunction unloadkeys \
+	'__fprintf=$shfunc_fprintf:q' \
+	'__eprintf=$shfunc_eprintf:q' \
+	'__openkey=$shfunc_openkey:q' \
+	'__quietly=$shfunc_quietly:q' \
+	'__colorize=$shfunc_colorize:q' \
+	'__closekey=$shfunc_closekey:q' \
+'                                                                            \
+	eval "$__fprintf"                                                    \
+	eval "$__eprintf"                                                    \
+	eval "$__openkey"                                                    \
+	eval "$__quietly"                                                    \
+	eval "$__colorize"                                                   \
+	eval "$__closekey"                                                   \
+	local OPTIND=1 OPTARG flag all= close= eject= verbose=               \
+	while getopts acehv flag; do                                         \
+		case "$flag" in                                              \
+		a) all=1 ;;                                                  \
+		c) close=1 ;;                                                \
+		e) close=1 eject=1 ;;                                        \
+		v) verbose=1 ;;                                              \
+		*) local optfmt="\t%-12s %s\n"                               \
+		   eprintf "Usage: $FUNCNAME [OPTIONS] [key ...]\n"          \
+		   eprintf "OPTIONS:\n"                                      \
+		   eprintf "$optfmt" "-a" "Unload all keys."                 \
+		   eprintf "$optfmt" "-c"                                \\\\\
+		           "Close USB media after loading keys."             \
+		   eprintf "$optfmt" "-e"                                \\\\\
+		           "Close and eject USB media after loading keys."   \
+		   eprintf "$optfmt" "-h"                                \\\\\
+		           "Print this text to stderr and return."           \
+		   eprintf "$optfmt" "-v"                                \\\\\
+		           "Print verbose debugging information."            \
+		   return ${FAILURE:-1}                                      \
+		esac                                                         \
+	done                                                                 \
+	shift $(( $OPTIND - 1 ))                                             \
+	local suffix file show= unload_required=                             \
+	if [ "$all" ]; then                                                  \
+		unload_required=1                                            \
+		shift $#                                                     \
+	fi                                                                   \
+	for suffix in "$@"; do                                               \
+		file="/mnt/keys/id_rsa.$suffix"                              \
+		ssh-add -l | awk -v file="$file" '\''                       \\
+			gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/, "") && \\
+				$0 == file { exit found++ }                 \\
+			END { exit \!found }                                \\
+		'\'' || continue # not loaded                                \
+		show="$show${show:+|}$suffix"                                \
+		unload_required=1                                            \
+		break                                                        \
+	done                                                                 \
+	ssh-add -l | colorize -c 31 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)" \
+	[ "$unload_required" ] || return ${SUCCESS:-0}                       \
+	openkey ${verbose:+-v} || return ${FAILURE:-1}                       \
+	[ "$verbose" ] && ssh-add -l                                         \
+	if [ "$all" ]; then                                                  \
+		ssh-add -D                                                   \
+	else                                                                 \
+		for suffix in "$@"; do                                       \
+			file="/mnt/keys/id_rsa.$suffix"                      \
+			[ -f "$file" ] || continue                           \
+			ssh-add -l | awk -v file="$file" '\''               \\
+				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/,\\
+					"") && $0 == file { exit found++ }  \\
+				END { exit \!found }                        \\
+			'\'' || continue                                     \
+			ssh-add -d "$file"                                   \
+		done                                                         \
+	fi                                                                   \
+	[ "$close" ] && closekey ${verbose:+-v} ${eject:+-e}                 \
+	[ "$all" ] || ssh-add -l |                                           \
+		colorize -c 36 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)"   \
+'
 
 # dialog_menutag
 #
