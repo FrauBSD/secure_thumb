@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 21:25:52 +0330 kfvahedi $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 23:19:17 +0330 kfvahedi $
 #
 ############################################################ INFORMATION
 #
@@ -635,11 +635,11 @@ shfunction closekey \
 		*) local optfmt="\t%-4s %s\n"                                \
 		   eprintf "Usage: $ALIASNAME [-ehv]\n"                      \
 		   eprintf "OPTIONS:\n"                                      \
-		   eprintf "$optfmt" "-e" \                                  \
+		   eprintf "$optfmt" "-e"                                \\\\\
 		           "Eject USB media (using "\`"camcontrol eject'\'')." \
-		   eprintf "$optfmt" "-h" \                                  \
+		   eprintf "$optfmt" "-h"                                \\\\\
 		           "Print this text to stderr and return."           \
-		   eprintf "$optfmt" "-v" \                                  \
+		   eprintf "$optfmt" "-v"                                \\\\\
 		           "Print verbose debugging information."            \
 		   return ${FAILURE:-1}                                      \
 		esac                                                         \
