@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-13 23:57:20 +0330 kfvahedi $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-14 13:07:11 +0330 kfvahedi $
 #
 ############################################################ INFORMATION
 #
@@ -727,10 +727,117 @@ shfunction closekey \
 #     ssh-agent-dup() -- from this file
 # NB: Requires awk(1) kill(1) ps(1) ssh-add(1) -- from base system
 #
-#?quietly unalias loadkeys
-#?shfunction loadkeys '                                                      \
-#?	: XXX TODO XXX                                                       \
-#?'
+quietly unalias loadkeys
+shfunction loadkeys \
+	'__fprintf=$shfunc_fprintf:q' \
+	'__eprintf=$shfunc_eprintf:q' \
+	'__openkey=$shfunc_openkey:q' \
+	'__quietly=$shfunc_quietly:q' \
+	'__colorize=$shfunc_colorize:q' \
+	'__closekey=$shfunc_closekey:q' \
+	'__ssh_agent_dup=$shfunc_ssh_agent_dup:q' \
+'                                                                            \
+	eval "$__fprintf"                                                    \
+	eval "$__eprintf"                                                    \
+	eval "$__openkey"                                                    \
+	eval "$__quietly"                                                    \
+	eval "$__colorize"                                                   \
+	eval "$__closekey"                                                   \
+	eval "$__ssh_agent_dup"                                              \
+	local OPTIND=1 OPTARG flag close= eject= kill= new= timeout= verbose=\
+	while getopts cehknt:v flag; do                                      \
+		case "$flag" in                                              \
+		c) close=1 ;;                                                \
+		e) close=1 eject=1 ;;                                        \
+		k) kill=1 ;;                                                 \
+		n) new=1 ;;                                                  \
+		v) verbose=1 ;;                                              \
+		t) timeout="$OPTARG" ;;                                      \
+		*) local optfmt="\t%-12s %s\n"                               \
+		   eprintf "Usage: $FUNCNAME [OPTIONS] [key ...]\n"          \
+		   eprintf "OPTIONS:\n"                                      \
+		   eprintf "$optfmt" "-c"                                \\\\\
+		           "Close USB media after loading keys."             \
+		   eprintf "$optfmt" "-e"                                \\\\\
+		           "Close and eject USB media after loading keys."   \
+		   eprintf "$optfmt" "-h"                                \\\\\
+		           "Print this text to stderr and return."           \
+		   eprintf "$optfmt" "-k"                                \\\\\
+		           "Kill running ssh-agent(1) and launch new one."   \
+		   eprintf "$optfmt" "-n"                                \\\\\
+		           "Start a new ssh-agent, ignoring current one."    \
+		   eprintf "$optfmt" "-t timeout"                        \\\\\
+		           "Timeout. Only used if starting ssh-agent(1)."    \
+		   eprintf "$optfmt" "-v"                                \\\\\
+		           "Print verbose debugging information."            \
+		   return ${FAILURE:-1}                                      \
+		esac                                                         \
+	done                                                                 \
+	shift $(( $OPTIND - 1 ))                                             \
+	[ "$kill" ] && quietly ssh-agent -k                                  \
+	if [ "$new" ]; then                                                  \
+		ssh-agent ${timeout:+-t"$timeout"} ||                        \
+			return ${FAILURE:-1}                                 \
+	elif quietly kill -0 "$SSH_AGENT_PID"; then                          \
+		: already running                                            \
+	elif [ "$SSH_AUTH_SOCK" ] && quietly ssh-add -l; then                \
+		eval2 export SSH_AGENT_PID=$( lsof -t -- $SSH_AUTH_SOCK )    \
+	else                                                                 \
+		if ! ssh_agent_dup -q; then                                  \
+			ssh-agent ${timeout:+-t"$timeout"} ||                \
+				return ${FAILURE:-1}                         \
+		fi                                                           \
+	fi                                                                   \
+	ps -p "$SSH_AGENT_PID" || return ${FAILURE:-1}                       \
+	local suffix file show= load_required=                               \
+	[ $# -eq 0 ] && load_required=1                                      \
+	for suffix in "$@"; do                                               \
+		file="/mnt/keys/id_rsa.$suffix"                              \
+		ssh-add -l | awk -v file="$file" '\''                       \\
+			gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/, "") && \\
+				$0 == file { exit found++ }                 \\
+			END { exit \!found }                                \\
+		'\'' && show="$show${show:+|}$suffix" &&                     \
+	                continue # already loaded                            \
+		load_required=1                                              \
+		break                                                        \
+	done                                                                 \
+	ssh-add -l | colorize -c 36 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)" \
+	[ "$load_required" ] || return ${SUCCESS:-0}                         \
+	openkey ${verbose:+-v} || return ${FAILURE:-1}                       \
+	[ "$verbose" ] && ssh-add -l                                         \
+	local loaded_new=                                                    \
+	if [ $# -gt 0 ]; then                                                \
+		for suffix in "$@"; do                                       \
+			file="/mnt/keys/id_rsa.$suffix"                      \
+			[ -f "$file" ] || continue                           \
+			ssh-add -l | awk -v file="$file" '\''               \\
+				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/,\\
+					"") && $0 == file { exit found++ }  \\
+				END { exit \!found }                        \\
+			'\'' && continue                                     \
+			ssh-add "$file" || continue                          \
+			loaded_new=1                                         \
+			show="$show${show:+|}$suffix"                        \
+		done                                                         \
+	else                                                                 \
+		for file in /mnt/keys/id_rsa.*; do                           \
+			[ -e "$file" ] || continue                           \
+			[ "$file" != "${file%.[Pp][Uu][Bb]}" ] && continue   \
+			ssh-add -l | awk -v file="$file" '\''               \\
+				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/,\\
+					"") && $0 == file { exit found++ }  \\
+				END { exit \!found }                         \
+			'\'' && continue                                     \
+			ssh-add "$file" || continue                          \
+			loaded_new=1                                         \
+			show="$show${show:+|}${file#/mnt/keys/id_rsa.}"      \
+		done                                                         \
+	fi                                                                   \
+	[ "$close" ] && closekey ${verbose:+-v} ${eject:+-e}                 \
+	[ "$loaded_new" ] && ssh-add -l |                                    \
+		colorize -c 36 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)"   \
+'
 
 # unloadkeys [OPTIONS] [key ...]
 #
