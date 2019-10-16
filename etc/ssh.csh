@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:28:20 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:29:26 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -697,7 +697,7 @@ shfunction closekey \
 		}                                                           \\
 		found && $0 = devices[d] { print; exit }                    \\
 		END { exit \!found }                                        \\
-	'\'' ) || return                                                    \\
+	'\'' ) || return                                                     \
 	[ ! -f "/mnt/umount.sh" ] ||                                         \
 		${verbose:+eval2} /mnt/umount.sh ${verbose:+-v} || return    \
 	! df -l /mnt |                                                       \
