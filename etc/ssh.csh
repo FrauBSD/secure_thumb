@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:29:26 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:37:58 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -747,7 +747,9 @@ shfunction loadkeys \
 	eval "$__colorize"                                                   \
 	eval "$__closekey"                                                   \
 	eval "$__ssh_agent_dup"                                              \
-	local OPTIND=1 OPTARG flag close= eject= kill= new= timeout= verbose=\
+	                                                                     \
+	local OPTIND=1 OPTARG flag                                           \
+	local close= eject= kill= new= pid= timeout= verbose=                \
 	while getopts cehknt:v flag; do                                      \
 		case "$flag" in                                              \
 		c) close=1 ;;                                                \
