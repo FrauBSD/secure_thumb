@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:42:34 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:51:35 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -882,6 +882,8 @@ quietly unalias unloadkeys
 shfunction unloadkeys \
 	'__fprintf=$shfunc_fprintf:q' \
 	'__eprintf=$shfunc_eprintf:q' \
+	'__eval2=$shfunc_eval2:q' \
+	'__have=$shfunc_have:q' \
 	'__openkey=$shfunc_openkey:q' \
 	'__quietly=$shfunc_quietly:q' \
 	'__colorize=$shfunc_colorize:q' \
@@ -889,6 +891,8 @@ shfunction unloadkeys \
 '                                                                            \
 	eval "$__fprintf"                                                    \
 	eval "$__eprintf"                                                    \
+	eval "$__eval2"                                                      \
+	eval "$__have"                                                       \
 	eval "$__openkey"                                                    \
 	eval "$__quietly"                                                    \
 	eval "$__colorize"                                                   \
