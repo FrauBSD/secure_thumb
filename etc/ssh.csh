@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.csh 2019-10-14 13:07:11 +0330 kfvahedi $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:19:56 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -579,9 +579,9 @@ shfunction openkey \
 		*) local optfmt="\t%-4s %s\n"                                \
 		   eprintf "Usage: $ALIASNAME [-hv]\n"                       \
 		   eprintf "OPTIONS:\n"                                      \
-		   eprintf "$optfmt" "-h" \                                  \
+		   eprintf "$optfmt" "-h"                                \\\\\
 		           "Print this text to stderr and return."           \
-		   eprintf "$optfmt" "-v" \                                  \
+		   eprintf "$optfmt" "-v"                                \\\\\
 		           "Print verbose debugging information."            \
 		   return ${FAILURE:-1}                                      \
 		esac                                                         \
