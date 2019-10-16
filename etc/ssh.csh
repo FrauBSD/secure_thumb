@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:23:27 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:28:20 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -570,6 +570,7 @@ shfunction openkey \
 	eval "$__eprintf"                                                    \
 	eval "$__eval2"                                                      \
 	eval "$__have"                                                       \
+	                                                                     \
 	[ "$UNAME_s" = "FreeBSD" ] ||                                        \
 		{ echo "$FUNCNAME: FreeBSD only!" >&2; return 1; }           \
 	local OPTIND=1 OPTARG flag verbose= sudo=                            \
@@ -627,6 +628,7 @@ shfunction closekey \
 	eval "$__fprintf"                                                    \
 	eval "$__eprintf"                                                    \
 	eval "$__have"                                                       \
+	                                                                     \
 	local OPTIND=1 OPTARG flag eject= verbose= sudo=                     \
 	while getopts ehv flag; do                                           \
 		case "$flag" in                                              \
@@ -663,7 +665,8 @@ shfunction closekey \
 			exit found++                                        \\
 		} END { exit ! found }                                      \\
 	'\'' ) || daN=$(                                                     \
-		[ "$sudo" -a "$verbose" ] && echo $sudo camcontrol devlist >&2 \
+		[ "$sudo" -a "$verbose" ] &&                                 \
+			echo $sudo camcontrol devlist >&2                    \
 		$sudo camcontrol devlist | awk '\''                         \\
 		BEGIN {                                                     \\
 			camfmt = "^<%s>[[:space:]]+[^(]*"                   \\
@@ -680,7 +683,7 @@ shfunction closekey \
 			{                                                   \\
 				if (\!match($0, sprintf(camfmt, find[n])))  \\
 					continue                            \\
-				devicestr = substr($0, RSTART + RLENGTH + 1)\\
+				devicestr = substr($0, RSTART + RLENGTH + 1) \\
 				gsub(/\).*/, "", devicestr)                 \\
 				ndevs = split(devicestr, devices, /,/)      \\
 				for (d = 1; d <= ndevs; d++) {              \\
@@ -697,8 +700,8 @@ shfunction closekey \
 	'\'' ) || return                                                    \\
 	[ ! -f "/mnt/umount.sh" ] ||                                         \
 		${verbose:+eval2} /mnt/umount.sh ${verbose:+-v} || return    \
-	! df -l /mnt | awk '\''                                             \\
-	               $NF=="/mnt"{exit found++}END{exit \!found}'\'' ||     \
+	! df -l /mnt |                                                       \
+		awk '\''$NF=="/mnt"{exit found++}END{exit \!found}'\'' ||    \
 		${verbose:+eval2} $sudo umount /mnt || return                \
 	[ "$eject" -a "$daN" ] &&                                            \
 		${verbose:+eval2} $sudo camcontrol eject "$daN"              \
@@ -802,7 +805,8 @@ shfunction loadkeys \
 		load_required=1                                              \
 		break                                                        \
 	done                                                                 \
-	ssh-add -l | colorize -c 36 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)" \
+	ssh-add -l | colorize -c 36                                      \\\\\
+		"/mnt/keys/id_rsa\\.($show)([[:space:]]|$)" >&2              \
 	[ "$load_required" ] || return ${SUCCESS:-0}                         \
 	openkey ${verbose:+-v} || return ${FAILURE:-1}                       \
 	[ "$verbose" ] && ssh-add -l                                         \
@@ -812,7 +816,7 @@ shfunction loadkeys \
 			file="/mnt/keys/id_rsa.$suffix"                      \
 			[ -f "$file" ] || continue                           \
 			ssh-add -l | awk -v file="$file" '\''               \\
-				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/,\\
+				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/, \\
 					"") && $0 == file { exit found++ }  \\
 				END { exit \!found }                        \\
 			'\'' && continue                                     \
@@ -825,7 +829,7 @@ shfunction loadkeys \
 			[ -e "$file" ] || continue                           \
 			[ "$file" != "${file%.[Pp][Uu][Bb]}" ] && continue   \
 			ssh-add -l | awk -v file="$file" '\''               \\
-				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/,\\
+				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/, \\
 					"") && $0 == file { exit found++ }  \\
 				END { exit \!found }                         \
 			'\'' && continue                                     \
@@ -835,8 +839,8 @@ shfunction loadkeys \
 		done                                                         \
 	fi                                                                   \
 	[ "$close" ] && closekey ${verbose:+-v} ${eject:+-e}                 \
-	[ "$loaded_new" ] && ssh-add -l |                                    \
-		colorize -c 36 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)"   \
+	[ "$loaded_new" ] && ssh-add -l | colorize -c 36                 \\\\\
+		"/mnt/keys/id_rsa\\.($show)([[:space:]]|$)"                  \
 '
 
 # unloadkeys [OPTIONS] [key ...]
@@ -874,6 +878,7 @@ shfunction unloadkeys \
 	eval "$__quietly"                                                    \
 	eval "$__colorize"                                                   \
 	eval "$__closekey"                                                   \
+	                                                                     \
 	local OPTIND=1 OPTARG flag all= close= eject= verbose=               \
 	while getopts acehv flag; do                                         \
 		case "$flag" in                                              \
@@ -913,7 +918,8 @@ shfunction unloadkeys \
 		unload_required=1                                            \
 		break                                                        \
 	done                                                                 \
-	ssh-add -l | colorize -c 31 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)" \
+	ssh-add -l |                                                         \
+		colorize -c 31 "/mnt/keys/id_rsa\\.($show)([[:space:]]|$)"   \
 	[ "$unload_required" ] || return ${SUCCESS:-0}                       \
 	openkey ${verbose:+-v} || return ${FAILURE:-1}                       \
 	[ "$verbose" ] && ssh-add -l                                         \
@@ -924,7 +930,7 @@ shfunction unloadkeys \
 			file="/mnt/keys/id_rsa.$suffix"                      \
 			[ -f "$file" ] || continue                           \
 			ssh-add -l | awk -v file="$file" '\''               \\
-				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/,\\
+				gsub(/(^[0-9]+ [[:xdigit:]:]+ | \(.*\).*$)/, \\
 					"") && $0 == file { exit found++ }  \\
 				END { exit \!found }                        \\
 			'\'' || continue                                     \
@@ -950,6 +956,7 @@ shfunction dialog_menutag \
 	'__quietly=$shfunc_quietly:q' \
 '                                                                            \
 	eval "$__quietly"                                                    \
+	                                                                     \
 	local tmpfile="$DIALOG_TMPDIR/dialog.menu.$$"                        \
                                                                              \
 	[ -f "$tmpfile" ] || return ${FAILURE:-1}                            \
