@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:45:30 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:49:37 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -96,7 +96,7 @@ alias escape "awk '"'                                                       \\
 # NB: Requires ssh-agent -- from base system
 #
 quietly unalias ssh-agent
-alias ssh-agent 'eval `ssh-agent -c -t 1800 \!*`'
+alias ssh-agent 'eval `/usr/bin/ssh-agent -c -t 1800 \!*`'
 
 # function $name $code
 #
