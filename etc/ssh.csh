@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:37:58 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:45:30 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -734,6 +734,7 @@ quietly unalias loadkeys
 shfunction loadkeys \
 	'__fprintf=$shfunc_fprintf:q' \
 	'__eprintf=$shfunc_eprintf:q' \
+	'__have=$shfunc_have:q' \
 	'__openkey=$shfunc_openkey:q' \
 	'__quietly=$shfunc_quietly:q' \
 	'__colorize=$shfunc_colorize:q' \
@@ -742,6 +743,7 @@ shfunction loadkeys \
 '                                                                            \
 	eval "$__fprintf"                                                    \
 	eval "$__eprintf"                                                    \
+	eval "$__have"                                                       \
 	eval "$__openkey"                                                    \
 	eval "$__quietly"                                                    \
 	eval "$__colorize"                                                   \
@@ -786,7 +788,19 @@ shfunction loadkeys \
 	elif quietly kill -0 "$SSH_AGENT_PID"; then                          \
 		: already running                                            \
 	elif [ "$SSH_AUTH_SOCK" ] && quietly ssh-add -l; then                \
-		eval2 export SSH_AGENT_PID=$( lsof -t -- $SSH_AUTH_SOCK )    \
+		if have lsof; then                                           \
+			eval2 export SSH_AGENT_PID=$(                        \
+				lsof -t -- "$SSH_AUTH_SOCK"                  \
+			)                                                    \
+		else                                                         \
+			case "$SSH_AUTH_SOCK" in                             \
+			*/agent.[0-9]*)                                      \
+				pid="${SSH_AUTH_SOCK##*/agent.}"             \
+				pid="${pid%%[\!0-9]*}"                       \
+				eval2 export SSH_AGENT_PID=$pid              \
+				;;                                           \
+			esac                                                 \
+		fi                                                           \
 	else                                                                 \
 		if ! ssh_agent_dup -q; then                                  \
 			ssh-agent ${timeout:+-t"$timeout"} ||                \
