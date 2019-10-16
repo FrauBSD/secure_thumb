@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:32:46 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:38:39 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -322,6 +322,7 @@ eshfunction ssh-agent-dup \
 	eval "$__have"                                                       \
 	eval "$__quietly"                                                    \
 	                                                                     \
+	local nsockets=0                                                     \
 	local t=1s # ssh-add(1) timeout                                      \
 	local list_all= quiet= interactive=1 noninteractive=                 \
 	local sockets=                                                       \
@@ -351,18 +352,27 @@ eshfunction ssh-agent-dup \
 		# Must exist as a socket                                     \
 		[ -S "$socket" ] || continue                                 \
 		                                                             \
-		# Must end in numbers-only (after trailing dot)              \
-		pid="${socket##*.}"                                          \
-		[ "$pid" -a "$pid" = "${pid#*[\!0-9]}" ] || continue         \
-		pid=$(( $pid + 1 )) # socket num is one below agent PID      \
+		if have lsof; then                                           \
+			pid=$( lsof -t -- "$socket" 2> /dev/null ) ||        \
+				continue                                     \
+		else                                                         \
+			# Must end in numbers-only (after trailing dot)      \
+			pid="${socket##*.}"                                  \
+			[ "$pid" -a "$pid" = "${pid#*[\!0-9]}" ] ||          \
+				continue                                     \
 		                                                             \
-		# Must be a running pid and an ssh or ssh-agent              \
-		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )                 \
-		if ! [ "$ucomm" = ssh-agent ]; then                          \
-			# This could be a forwarded agent                    \
-			pid=$(( $pid - 1 ))                                  \
-			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
-			[ "$ucomm" = sshd ] || continue                      \
+			for pid in $(( $pid + 1 )) $pid $(( $pid + 2 )) ""   \
+			do                                                   \
+				[ "$pid" ] || break                          \
+				# Potential PIDs based on socket num         \
+				# Must be running pid and ssh[d]/agent       \
+				ucomm=$( ps -p $pid -o ucomm= 2> /dev/null ) \
+				case "$ucomm" in                             \
+				ssh-agent|ssh|sshd) break ;;                 \
+				esac                                         \
+				pid=                                         \
+			done                                                 \
+			[ "$pid" ] || continue                               \
 		fi                                                           \
 		                                                             \
 		# Must be owned by the current user unless -a is used        \
@@ -374,41 +384,28 @@ eshfunction ssh-agent-dup \
 		fi                                                           \
 		                                                             \
 		sockets="$sockets $socket"                                   \
+		nsockets=$(( $nsockets + 1 ))                                \
+		export socketpid$nsockets=$pid                               \
 	done                                                                 \
-	                                                                     \
 	sockets="${sockets# }"                                               \
-	if [ ! "$sockets" ]; then                                            \
+	                                                                     \
+	if [ $nsockets -eq 0 ]; then                                         \
 		if [ ! "$noninteractive" ]; then                             \
 			local msg="$ALIASNAME: No agent sockets available"   \
 			echo "$msg" | ${LOLCAT:-cat} >&2                     \
 		fi                                                           \
 		return ${FAILURE:-1}                                         \
 	fi                                                                   \
-	if [ "${sockets}" = "${sockets%% *}" ]; then                         \
-		# Only one socket found                                      \
-		pid=$(( ${sockets##*.} + 1 ))                                \
-		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )                 \
-		if [ "$ucomm" = ssh-agent ]; then                            \
-			cexport SSH_AUTH_SOCK="$sockets"                 \\\\\
-				SSH_AGENT_PID="$pid"                         \
-		else                                                         \
-			# This could be a forwarded agent                    \
-			pid=$(( $pid - 1 ))                                  \
-			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
-			if [ "$ucomm" = sshd ]; then                         \
-				cexport SSH_AUTH_SOCK="$sockets"         \\\\\
-					SSH_AGENT_PID="$pid"                 \
-			else                                                 \
-				cexport SSH_AUTH_SOCK="$sockets"             \
-			fi                                                   \
-		fi                                                           \
+	if [ $nsockets -eq 1 ]; then                                         \
+		cexport SSH_AUTH_SOCK="$sockets"                             \
+		[ "pid" ] && cexport SSH_AGENT_PID=$pid                      \
 		[ "$SSH_AGENT_PID" -a ! "$quiet" ] && # show process         \
 			[ "$interactive" ] &&                                \
 			ps -p "$SSH_AGENT_PID" | ${LOLCAT:-cat} >&2          \
 		# dump fingerprints from newly configured agent              \
 		if ! [ "$quiet" -o "$noninteractive" ]; then                 \
-			echo "# NB: Use \`ssh-agent -k'\''"              \\\\\
-			     "to kill this agent"                            \
+			[ "$pid" ] && echo " NB: Use "                   \\\\\
+				"\`ssh-agent -k'\'' to kill this agent"      \
 			if have timeout; then                                \
 				timeout $t ssh-add -l                        \
 			else                                                 \
@@ -434,13 +431,11 @@ eshfunction ssh-agent-dup \
 		printf "$fmt" "" PID USER+NKEYS COMMAND >&2                  \
 		for socket in $sockets; do                                   \
 			num=$(( $num + 1 ))                                  \
-			pid=$(( ${socket##*.} + 1 ))                         \
-			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
-			[ "$ucomm" = ssh-agent ] || pid=$(( $pid - 1 ))      \
+			eval pid=\$socketpid$num                             \
 			nkeys=0                                              \
 			identities=$(                                        \
 				unset interactive                            \
-				cexport SSH_AUTH_SOCK="$socket"              \
+				export SSH_AUTH_SOCK="$socket"               \
 				if have timeout; then                        \
 					timeout $t ssh-add -l                \
 				else                                         \
@@ -470,22 +465,9 @@ eshfunction ssh-agent-dup \
 		set -- $sockets                                              \
 		eval socket=\"\${$choice}\"                                  \
 		                                                             \
-		pid=$(( ${socket##*.} + 1 ))                                 \
-		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )                 \
-		if [ "$ucomm" = ssh-agent ]; then                            \
-			cexport SSH_AUTH_SOCK="$socket"                  \\\\\
-				SSH_AGENT_PID="$pid"                         \
-		else                                                         \
-			# This could be a forwarded agent                    \
-			pid=$(( $pid - 1 ))                                  \
-			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )         \
-			if [ "$ucomm" = sshd ]; then                         \
-				cexport SSH_AUTH_SOCK="$socket"          \\\\\
-					SSH_AGENT_PID="$pid"                 \
-			else                                                 \
-				cexport SSH_AUTH_SOCK="$socket"              \
-			fi                                                   \
-		fi                                                           \
+		cexport SSH_AUTH_SOCK="$socket"                              \
+		eval pid=\$socketpid$choice                                  \
+		[ "$pid" ] && cexport SSH_AGENT_PID=$pid                     \
 	else                                                                 \
 		local menu_list=                                             \
 		                                                             \
@@ -496,7 +478,7 @@ eshfunction ssh-agent-dup \
 			{                                                    \
 				if (++tagn > length(tags)) exit              \
 				if (\!match($0, /[[:digit:]]+$/)) next       \
-				pid = substr($0, RSTART, RLENGTH) + 1        \
+				pid = ENVIRON["socketpid"tagn]               \
 				cmd = sprintf("ps -p %u -o user=", pid)      \
 				cmd | getline user                           \
 				close(cmd)                                   \
