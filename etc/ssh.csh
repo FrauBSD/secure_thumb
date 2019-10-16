@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:38:39 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:42:34 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -713,7 +713,17 @@ shfunction closekey \
 # NB: Requires awk(1) kill(1) ps(1) ssh-add(1) -- from base system
 #
 quietly unalias loadkeys
-shfunction loadkeys \
+shfunction ssh_agent '                                                       \
+	[ $# -gt 0 ] || set -- -t 1800                                       \
+	eval "$( /usr/bin/ssh-agent -s "$@" 2>&1 | grep -v Agent )"          \
+	local retval=$?                                                      \
+	cexport SSH_AUTH_SOCK=$SSH_AUTH_SOCK SSH_AGENT_PID=$SSH_AGENT_PID    \
+	echo Agent pid $SSH_AGENT_PID >&2                                    \
+	return $retval                                                       \
+'
+unalias ssh_agent # [e]shfunction use only
+eshfunction loadkeys \
+	'__cexport=$shfunc_cexport:q' \
 	'__fprintf=$shfunc_fprintf:q' \
 	'__eprintf=$shfunc_eprintf:q' \
 	'__have=$shfunc_have:q' \
@@ -721,8 +731,10 @@ shfunction loadkeys \
 	'__quietly=$shfunc_quietly:q' \
 	'__colorize=$shfunc_colorize:q' \
 	'__closekey=$shfunc_closekey:q' \
+	'__ssh_agent=$shfunc_ssh_agent:q' \
 	'__ssh_agent_dup=$shfunc_ssh_agent_dup:q' \
 '                                                                            \
+	eval "$__cexport"                                                    \
 	eval "$__fprintf"                                                    \
 	eval "$__eprintf"                                                    \
 	eval "$__have"                                                       \
@@ -730,6 +742,7 @@ shfunction loadkeys \
 	eval "$__quietly"                                                    \
 	eval "$__colorize"                                                   \
 	eval "$__closekey"                                                   \
+	eval "$__ssh_agent"                                                  \
 	eval "$__ssh_agent_dup"                                              \
 	                                                                     \
 	local OPTIND=1 OPTARG flag                                           \
@@ -763,15 +776,19 @@ shfunction loadkeys \
 		esac                                                         \
 	done                                                                 \
 	shift $(( $OPTIND - 1 ))                                             \
-	[ "$kill" ] && quietly ssh-agent -k                                  \
+	if [ "$kill" ]; then                                                 \
+		quietly ssh-agent -k ||:                                     \
+		unset SSH_AUTH_SOCK SSH_AGENT_PID                            \
+		echo unsetenv SSH_AUTH_SOCK SSH_AGENT_PID                    \
+	fi                                                                   \
 	if [ "$new" ]; then                                                  \
-		ssh-agent ${timeout:+-t"$timeout"} ||                        \
+		ssh_agent ${timeout:+-t"$timeout"} ||                        \
 			return ${FAILURE:-1}                                 \
 	elif quietly kill -0 "$SSH_AGENT_PID"; then                          \
 		: already running                                            \
 	elif [ "$SSH_AUTH_SOCK" ] && quietly ssh-add -l; then                \
 		if have lsof; then                                           \
-			eval2 export SSH_AGENT_PID=$(                        \
+			cexport SSH_AGENT_PID=$(                             \
 				lsof -t -- "$SSH_AUTH_SOCK"                  \
 			)                                                    \
 		else                                                         \
@@ -779,17 +796,17 @@ shfunction loadkeys \
 			*/agent.[0-9]*)                                      \
 				pid="${SSH_AUTH_SOCK##*/agent.}"             \
 				pid="${pid%%[\!0-9]*}"                       \
-				eval2 export SSH_AGENT_PID=$pid              \
+				cexport SSH_AGENT_PID=$pid                   \
 				;;                                           \
 			esac                                                 \
 		fi                                                           \
 	else                                                                 \
 		if ! ssh_agent_dup -q; then                                  \
-			ssh-agent ${timeout:+-t"$timeout"} ||                \
+			ssh_agent ${timeout:+-t"$timeout"} ||                \
 				return ${FAILURE:-1}                         \
 		fi                                                           \
 	fi                                                                   \
-	ps -p "$SSH_AGENT_PID" || return ${FAILURE:-1}                       \
+	ps -p "$SSH_AGENT_PID" >&2 || return ${FAILURE:-1}                   \
 	local suffix file show= load_required=                               \
 	[ $# -eq 0 ] && load_required=1                                      \
 	for suffix in "$@"; do                                               \
@@ -806,8 +823,8 @@ shfunction loadkeys \
 	ssh-add -l | colorize -c 36                                      \\\\\
 		"/mnt/keys/id_rsa\\.($show)([[:space:]]|$)" >&2              \
 	[ "$load_required" ] || return ${SUCCESS:-0}                         \
-	openkey ${verbose:+-v} || return ${FAILURE:-1}                       \
-	[ "$verbose" ] && ssh-add -l                                         \
+	openkey ${verbose:+-v} >&2 || return ${FAILURE:-1}                   \
+	[ "$verbose" ] && ssh-add -l >&2                                     \
 	local loaded_new=                                                    \
 	if [ $# -gt 0 ]; then                                                \
 		for suffix in "$@"; do                                       \
@@ -818,7 +835,7 @@ shfunction loadkeys \
 					"") && $0 == file { exit found++ }  \\
 				END { exit \!found }                        \\
 			'\'' && continue                                     \
-			ssh-add "$file" || continue                          \
+			ssh-add "$file" >&2 || continue                      \
 			loaded_new=1                                         \
 			show="$show${show:+|}$suffix"                        \
 		done                                                         \
@@ -831,14 +848,14 @@ shfunction loadkeys \
 					"") && $0 == file { exit found++ }  \\
 				END { exit \!found }                         \
 			'\'' && continue                                     \
-			ssh-add "$file" || continue                          \
+			ssh-add "$file" >&2 || continue                      \
 			loaded_new=1                                         \
 			show="$show${show:+|}${file#/mnt/keys/id_rsa.}"      \
 		done                                                         \
 	fi                                                                   \
-	[ "$close" ] && closekey ${verbose:+-v} ${eject:+-e}                 \
+	[ "$close" ] && closekey ${verbose:+-v} ${eject:+-e} >&2             \
 	[ "$loaded_new" ] && ssh-add -l | colorize -c 36                 \\\\\
-		"/mnt/keys/id_rsa\\.($show)([[:space:]]|$)"                  \
+		"/mnt/keys/id_rsa\\.($show)([[:space:]]|$)" >&2              \
 '
 
 # unloadkeys [OPTIONS] [key ...]
