@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:49:37 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:32:46 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -325,7 +325,7 @@ eshfunction ssh-agent-dup \
 	local t=1s # ssh-add(1) timeout                                      \
 	local list_all= quiet= interactive=1 noninteractive=                 \
 	local sockets=                                                       \
-	local ucomm owner socket owner pid current_user                      \
+	local ucomm owner socket stat pid current_user                       \
 	                                                                     \
 	local OPTIND=1 OPTARG flag                                           \
 	while getopts anq flag; do                                           \
@@ -342,8 +342,8 @@ eshfunction ssh-agent-dup \
 	shift $(( $OPTIND - 1 ))                                             \
 	                                                                     \
 	case "$UNAME_s" in                                                   \
-	*BSD) owner="-f%Su" ;;                                               \
-	*) owner="-c%U"                                                      \
+	*BSD) stat="-f%Su" ;;                                                \
+	*) stat="-c%U"                                                       \
 	esac                                                                 \
 	                                                                     \
 	current_user=$( id -nu )                                             \
@@ -368,7 +368,7 @@ eshfunction ssh-agent-dup \
 		# Must be owned by the current user unless -a is used        \
 		# NB: When -a is used, the socket still has to be readable   \
 		if [ ! "$list_all" ]; then                                   \
-			owner=$( stat $owner "$socket" 2> /dev/null ) ||     \
+			owner=$( stat $stat "$socket" 2> /dev/null ) ||      \
 				continue                                     \
 			[ "$owner" = "$current_user" ] || continue           \
 		fi                                                           \
