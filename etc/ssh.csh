@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:19:56 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 10:23:27 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -571,13 +571,13 @@ shfunction openkey \
 	eval "$__eval2"                                                      \
 	eval "$__have"                                                       \
 	[ "$UNAME_s" = "FreeBSD" ] ||                                        \
-		{ echo "$ALIASNAME: FreeBSD only!" >&2; return 1; }          \
+		{ echo "$FUNCNAME: FreeBSD only!" >&2; return 1; }           \
 	local OPTIND=1 OPTARG flag verbose= sudo=                            \
 	while getopts hv flag; do                                            \
 		case "$flag" in                                              \
 		v) verbose=1 ;;                                              \
 		*) local optfmt="\t%-4s %s\n"                                \
-		   eprintf "Usage: $ALIASNAME [-hv]\n"                       \
+		   eprintf "Usage: $FUNCNAME [-hv]\n"                        \
 		   eprintf "OPTIONS:\n"                                      \
 		   eprintf "$optfmt" "-h"                                \\\\\
 		           "Print this text to stderr and return."           \
@@ -593,7 +593,7 @@ shfunction openkey \
 		elif have sudo; then                                         \
 			sudo=sudo                                            \
 		fi || {                                                      \
-			eprintf "$ALIASNAME: not enough privileges\n"        \
+			eprintf "$FUNCNAME: not enough privileges\n"         \
 			return ${FAILURE:-1}                                 \
 		}                                                            \
 	fi                                                                   \
@@ -633,7 +633,7 @@ shfunction closekey \
 		e) eject=1 ;;                                                \
 		v) verbose=1 ;;                                              \
 		*) local optfmt="\t%-4s %s\n"                                \
-		   eprintf "Usage: $ALIASNAME [-ehv]\n"                      \
+		   eprintf "Usage: $FUNCNAME [-ehv]\n"                       \
 		   eprintf "OPTIONS:\n"                                      \
 		   eprintf "$optfmt" "-e"                                \\\\\
 		           "Eject USB media (using "\`"camcontrol eject'\'')." \
@@ -651,7 +651,7 @@ shfunction closekey \
 		elif have sudo; then                                         \
 			sudo=sudo                                            \
 		fi || {                                                      \
-			eprintf "$ALIASNAME: not enough privileges\n"        \
+			eprintf "$FUNCNAME: not enough privileges\n"         \
 			return ${FAILURE:-1}                                 \
 		}                                                            \
 	fi                                                                   \
