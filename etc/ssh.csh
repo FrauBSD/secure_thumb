@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-16 13:51:35 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-27 04:47:52 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -23,7 +23,8 @@ setenv FAILURE 1
 # Are we running interactively?
 #
 set interactive = 0
-if ( $?prompt ) set interactive = 1
+test -t 0
+if ( $status == 0 ) set interactive = 1
 
 #
 # OS Specifics
@@ -1060,7 +1061,7 @@ if ( ! $?SSH_AUTH_SOCK ) then
 	if ( "$interactive" ) then
 		ssh-agent-dup
 	else
-		quietly ssh-agent-dup -n || :
+		ssh-agent-dup -n || :
 	endif
 endif
 
