@@ -4,7 +4,7 @@
 #
 # $Title: bash(1) subroutine file $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.subr 2018-11-08 16:23:03 -0800 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.subr 2019-10-27 05:01:56 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -144,6 +144,7 @@ ssh-agent()
 quietly unalias ssh-agent-dup
 ssh-agent-dup()
 {
+	local funcname=ssh-agent-dup
 	local t=1s # ssh-add(1) timeout
 	local list_all= quiet= interactive=1 noninteractive=
 	local sockets=
@@ -157,7 +158,7 @@ ssh-agent-dup()
 		q) quiet=1 ;;
 		\?|*)
 			[ "$noninteractive" ] ||
-				echo "$FUNCNAME [-aq]" | ${LOLCAT:-cat} >&2
+				echo "$funcname [-aq]" | ${LOLCAT:-cat} >&2
 			return ${FAILURE:-1}
 		esac
 	done
@@ -201,7 +202,7 @@ ssh-agent-dup()
 	sockets="${sockets# }"
 	if [ ! "$sockets" ]; then
 		if [ ! "$noninteractive" ]; then
-			local msg="$FUNCNAME: No agent sockets available"
+			local msg="$funcname: No agent sockets available"
 			echo "$msg" | ${LOLCAT:-cat} >&2
 		fi
 		return ${FAILURE:-1}
@@ -271,12 +272,12 @@ ssh-agent-dup()
 		: ${choice:=$num}
 		case "$choice" in
 		""|*[!0-9]*)
-			echo "$FUNCNAME: Invalid choice [$choice]" |
+			echo "$funcname: Invalid choice [$choice]" |
 				${LOLCAT:-cat} >&2
 			return ${FAILURE:-1} ;;
 		esac
 		if [ $choice -gt $num -o $choice -lt 1 ]; then
-			echo "$FUNCNAME: Choice out of range [$choice]" |
+			echo "$funcname: Choice out of range [$choice]" |
 				${LOLCAT:-cat} >&2
 			return ${FAILURE:-1}
 		fi
@@ -336,7 +337,7 @@ ssh-agent-dup()
 
 		local prompt="Pick an ssh-agent to duplicate (user+nkeys):"
 		eval dialog \
-			--clear --title "'$FUNCNAME'" --item-help \
+			--clear --title "'$funcname'" --item-help \
 			--menu "'$prompt'" 17 55 9 $menu_list \
 			2> "$DIALOG_TMPDIR/dialog.menu.$$"
 		local retval=$?
@@ -354,7 +355,7 @@ ssh-agent-dup()
 
 	# Attempt to dump fingerprints from newly configured agent
 	if [ ! "$quiet" ]; then
-		echo "# NB: Use \`$FUNCNAME' to select a different agent"
+		echo "# NB: Use \`$funcname' to select a different agent"
 		echo "# NB: Use \`ssh-agent -k' to kill this agent"
 		timeout $t ssh-add -l
 	fi | ${LOLCAT:-cat}
@@ -370,14 +371,15 @@ ssh-agent-dup()
 quietly unalias openkey
 openkey()
 {
+	local funcname=openkey
 	[ "$UNAME_s" = "FreeBSD" ] ||
-		{ echo "$FUNCNAME: FreeBSD only!" >&2; return 1; }
+		{ echo "$funcname: FreeBSD only!" >&2; return 1; }
 	local OPTIND=1 OPTARG flag verbose= sudo=
 	while getopts hv flag; do
 		case "$flag" in
 		v) verbose=1 ;;
 		*) local optfmt="\t%-4s %s\n"
-		   eprintf "Usage: $FUNCNAME [-hv]\n"
+		   eprintf "Usage: $funcname [-hv]\n"
 		   eprintf "OPTIONS:\n"
 		   eprintf "$optfmt" "-h" \
 		           "Print this text to stderr and return."
@@ -393,7 +395,7 @@ openkey()
 		elif have sudo; then
 			sudo=sudo
 		fi || {
-			eprintf "$FUNCNAME: not enough privileges\n"
+			eprintf "$funcname: not enough privileges\n"
 			return ${FAILURE:-1}
 		}
 	fi
@@ -421,13 +423,14 @@ openkey()
 quietly unalias closekey
 closekey()
 {
+	local funcname=closekey
 	local OPTIND=1 OPTARG flag eject= verbose= sudo=
 	while getopts ehv flag; do
 		case "$flag" in
 		e) eject=1 ;;
 		v) verbose=1 ;;
 		*) local optfmt="\t%-4s %s\n"
-		   eprintf "Usage: $FUNCNAME [-ehv]\n"
+		   eprintf "Usage: $funcname [-ehv]\n"
 		   eprintf "OPTIONS:\n"
 		   eprintf "$optfmt" "-e" \
 		           "Eject USB media (using \`camcontrol eject')."
@@ -445,7 +448,7 @@ closekey()
 		elif have sudo; then
 			sudo=sudo
 		fi || {
-			eprintf "$FUNCNAME: not enough privileges\n"
+			eprintf "$funcname: not enough privileges\n"
 			return ${FAILURE:-1}
 		}
 	fi
@@ -521,6 +524,7 @@ closekey()
 quietly unalias loadkeys
 loadkeys()
 {
+	local funcname=loadkeys
 	local OPTIND=1 OPTARG flag close= eject= kill= new= timeout= verbose=
 	while getopts cehknt:v flag; do
 		case "$flag" in
@@ -531,7 +535,7 @@ loadkeys()
 		v) verbose=1 ;;
 		t) timeout="$OPTARG" ;;
 		*) local optfmt="\t%-12s %s\n"
-		   eprintf "Usage: $FUNCNAME [OPTIONS] [key ...]\n"
+		   eprintf "Usage: $funcname [OPTIONS] [key ...]\n"
 		   eprintf "OPTIONS:\n"
 		   eprintf "$optfmt" "-c" \
 		           "Close USB media after loading keys."
@@ -638,6 +642,7 @@ loadkeys()
 quietly unalias unloadkeys
 unloadkeys()
 {
+	local funcname=unloadkeys
 	local OPTIND=1 OPTARG flag all= close= eject= verbose=
 	while getopts acehv flag; do
 		case "$flag" in
@@ -646,7 +651,7 @@ unloadkeys()
 		e) close=1 eject=1 ;;
 		v) verbose=1 ;;
 		*) local optfmt="\t%-12s %s\n"
-		   eprintf "Usage: $FUNCNAME [OPTIONS] [key ...]\n"
+		   eprintf "Usage: $funcname [OPTIONS] [key ...]\n"
 		   eprintf "OPTIONS:\n"
 		   eprintf "$optfmt" "-a" "Unload all keys."
 		   eprintf "$optfmt" "-c" \
