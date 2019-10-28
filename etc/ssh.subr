@@ -2,13 +2,13 @@
 # vi: set tabstop=8     :: Vi/ViM
 ############################################################ IDENT(1)
 #
-# $Title: bash(1) subroutine file $
+# $Title: sh(1)/bash(1) subroutine file $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.subr 2019-10-27 05:01:56 +0000 freebsdfrau $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.subr 2019-10-28 13:57:30 +0000 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
-# Add to .bash_profile:
+# Add to .bash_profile or .shrc:
 # 	. ~/etc/ssh.subr
 #
 ############################################################ GLOBALS
