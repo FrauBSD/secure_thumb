@@ -1,4 +1,4 @@
-[//]: # ($FrauBSD: secure_thumb/README.md 2018-11-08 12:00:01 -0800 freebsdfrau $)
+[//]: # ($FrauBSD: //github.com/FrauBSD/secure_thumb/README.md 2019-10-28 13:53:36 +0000 freebsdfrau $)
 
 # Welcome to [FrauBSD.org/secure\_thumb](https://fraubsd.org/secure_thumb)!
 
@@ -24,7 +24,7 @@ This will ensure the FrauBSD keyword is expanded/updated for each commit.
 > 1. `$ make deploy`
 > 2. Insert thumb drive and press `ENTER`
 
-## Install `bash_profile` additions (some manual steps required)
+## Install shell additions (some manual steps required)
 
 > 1. `$ make install`
 > 2. Follow steps to finalize system setup
@@ -60,7 +60,7 @@ This will ensure the FrauBSD keyword is expanded/updated for each commit.
 
 > `$ make help`
 
-## Help on `bash_profile` additions
+## Help on shell additions
 
 > 1. `$ openkey -h`
 > 2. `$ closekey -h`
