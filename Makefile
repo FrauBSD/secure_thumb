@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2019-11-26 10:20:15 +0330 kfvahedi $
+# $FrauBSD: secure_thumb/Makefile 2019-11-28 19:51:47 +0330 kfvahedi $
 #
 ############################################################ OBJECTS
 
@@ -530,7 +530,7 @@ install:
 	cp etc/ssh.{subr,csh} ~/etc/
 	@echo 'Success!'
 	@echo
-	@echo Add to \`~/.bash_profile\' \(if in a bourne-type shell\):
+	@echo Add to \`~/.bash_profile\' \(if in bash\):
 	@echo
 	@printf "\t. ~/etc/ssh.subr\n"
 	@echo
