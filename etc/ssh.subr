@@ -4,7 +4,7 @@
 #
 # $Title: sh(1)/bash(1)/zsh(1) subroutine file $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.subr 2019-10-28 14:23:14 +0000 freebsdfrau $
+# $FrauBSD: secure_thumb/etc/ssh.subr 2019-12-01 21:46:26 -0800 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
