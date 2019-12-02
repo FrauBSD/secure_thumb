@@ -1,4 +1,4 @@
-[//]: # ($FrauBSD: secure_thumb/README.md 2019-11-28 19:58:32 +0330 kfvahedi $)
+[//]: # ($FrauBSD: secure_thumb/README.md 2019-12-01 21:45:45 -0800 freebsdfrau $)
 
 # Welcome to [FrauBSD.org/secure\_thumb](https://fraubsd.org/secure_thumb)!
 
