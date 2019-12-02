@@ -2,7 +2,7 @@
 #
 # $Title: Makefile to produce GELI encrypted image for use on USB thumb drive $
 # $Copyright: 2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/Makefile 2019-11-28 19:51:47 +0330 kfvahedi $
+# $FrauBSD: secure_thumb/Makefile 2019-12-01 21:44:39 -0800 freebsdfrau $
 #
 ############################################################ OBJECTS
 
@@ -527,18 +527,20 @@ expand:
 
 install:
 	mkdir -p ~/etc
-	cp etc/ssh.{subr,csh} ~/etc/
+	cp etc/ssh.subr etc/ssh.csh ~/etc/
 	@echo 'Success!'
 	@echo
-	@echo Add to \`~/.bash_profile\' \(if in bash\):
+	@printf "Add to \`~/.zprofile' (for zsh)"
+	@printf ", \`~/.bash_profile' (for bash)"
+	@printf ", or \`~/.shrc' (for [k]sh):\n"
 	@echo
-	@printf "\t. ~/etc/ssh.subr\n"
+	@printf "\t. etc/ssh.subr\n"
 	@echo
-	@echo Add to \`~/.cshrc\' \(if in [t]csh\):
+	@echo "Add to \`~/.cshrc\' (for [t]csh):"
 	@echo
-	@printf "\tsource ~/etc/ssh.csh\n"
+	@printf "\tsource etc/ssh.csh\n"
 	@echo
-	@echo Add to \`/etc/fstab\':
+	@echo "Add to \`/etc/fstab':"
 	@echo
 	@printf "\t/dev/da1s1a /mnt ufs rw,noauto 0 0\n"
 	@echo
