@@ -3,8 +3,8 @@
 ############################################################ IDENT(1)
 #
 # $Title: csh(1) semi-subroutine file $
-# $Copyright: 2015-2019 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2019-10-27 04:47:52 +0000 freebsdfrau $
+# $Copyright: 2015-2020 Devin Teske. All rights reserved. $
+# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2020-04-14 11:29:45 -0700 freebsdfrau $
 #
 ############################################################ INFORMATION
 #
@@ -33,7 +33,7 @@ if ( $status == 0 ) set interactive = 1
 if ( ! $?UNAME_s ) setenv UNAME_s `uname -s`
 
 #
-# For dialog(1) and Xdialog(1) menus -- mainly cvspicker in FUNCTIONS below
+# For dialog(1) and Xdialog(1) menus -- mainly ssh-agent-dup in FUNCTIONS below
 #
 set DIALOG_MENU_TAGS = "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
