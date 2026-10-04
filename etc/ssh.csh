@@ -4,7 +4,7 @@
 #
 # $Title: csh(1) semi-subroutine file $
 # $Copyright: 2015-2020 Devin Teske. All rights reserved. $
-# $FrauBSD: //github.com/FrauBSD/secure_thumb/etc/ssh.csh 2020-04-14 11:29:45 -0700 freebsdfrau $
+# $FrauBSD: secure_thumb/etc/ssh.csh 2026-10-03 21:43:55 -0700 Devin Teske $
 #
 ############################################################ INFORMATION
 #
@@ -259,7 +259,7 @@ shfunction eprintf \
 	fprintf 2 "$@"                                                       \
 '
 
-# ssh-agent-dup [-aqn]
+# ssh-agent-dup [-adnq]
 #
 # Connect to an open/active ssh-agent session available to the currently
 # authenticated user. If more than one ssh-agent is available and the `-n' flag
@@ -282,9 +282,11 @@ shfunction eprintf \
 # If `-a' is present, list all readable agent sockets, not just those owned by
 # the currently logged-in user.
 #
-# If `-q' is present, do not list agent nor keys.
+# If `-d' is present, disable the use of dialog, even if present.
 #
 # If `-n' is present, run non-interactively (good for scripts; pedantic).
+#
+# If `-q' is present, do not list agent nor keys.
 #
 # NB: Requires cexport() dialog_menutag() dialog_menutag2help() have()
 #     quietly() -- from this file
@@ -325,19 +327,24 @@ eshfunction ssh-agent-dup \
 	                                                                     \
 	local nsockets=0                                                     \
 	local t=1s # ssh-add(1) timeout                                      \
-	local list_all= quiet= interactive=1 noninteractive=                 \
-	local sockets=                                                       \
+	local list_all= nodialog= quiet= interactive=1 noninteractive=       \
+	local sockets= sockstatout=                                          \
 	local ucomm owner socket stat pid current_user                       \
+	local dialog=dialog                                                  \
+	                                                                     \
+	! have "$dialog" && have bsddialog && dialog=bsddialog               \
 	                                                                     \
 	local OPTIND=1 OPTARG flag                                           \
-	while getopts anq flag; do                                           \
+	while getopts adnq flag; do                                          \
 		case "$flag" in                                              \
 		a) list_all=1 ;;                                             \
+		d) nodialog=1 ;;                                             \
 		n) noninteractive=1 interactive= ;;                          \
 		q) quiet=1 ;;                                                \
 		\?|*)                                                        \
 			[ "$noninteractive" ] ||                             \
-				echo "$ALIASNAME [-aq]" | ${LOLCAT:-cat} >&2 \
+				echo "$ALIASNAME [-adnq]" |                  \
+					${LOLCAT:-cat} >&2                   \
 			return ${FAILURE:-1}                                 \
 		esac                                                         \
 	done                                                                 \
@@ -348,12 +355,23 @@ eshfunction ssh-agent-dup \
 	*) stat="-c%U"                                                       \
 	esac                                                                 \
 	                                                                     \
+	have sockstat && sockstatout=$( sockstat -wul )                      \
+	                                                                     \
 	current_user=$( id -nu )                                             \
-	for socket in /tmp/ssh-*/agent.[0-9]*; do                            \
+	for socket in /tmp/ssh-*/agent.[0-9]*                            \\\\\
+		$HOME/.ssh/agent/s.*.agent.*; do                             \
 		# Must exist as a socket                                     \
 		[ -S "$socket" ] || continue                                 \
 		                                                             \
-		if have lsof; then                                           \
+		if [ "$sockstatout" ]; then                                  \
+			pid=$( echo "$sockstatout" |                         \
+				awk -v socket="$socket" '\''                 \
+				$6==socket && ($2=="sshd" ||                 \
+					$2=="ssh-agent") {                   \
+					print $3; exit found++               \
+				} END { exit !found }                        \
+			'\'' ) || continue                                   \
+		elif have lsof; then                                         \
 			pid=$( lsof -t -- "$socket" 2> /dev/null ) ||        \
 				continue                                     \
 		else                                                         \
@@ -420,9 +438,9 @@ eshfunction ssh-agent-dup \
 	[ "$noninteractive" ] && return ${FAILURE:-1}                        \
 	                                                                     \
 	#                                                                    \
-	# If we do not have dialog(1), just print the possible values        \
+	# If we do not have dialog(1) or bsddialog(1), print possible values \
 	#                                                                    \
-	if ! have dialog; then                                               \
+	if [ "$nodialog" ] || ! have "$dialog"; then                         \
 		local prefix="%3s"                                           \
 		local fmt="$prefix %5s %-20s %s\n"                           \
 		local num=0 choice                                           \
@@ -505,7 +523,7 @@ eshfunction ssh-agent-dup \
 		)                                                            \
 		                                                             \
 		local prompt="Pick an ssh-agent to duplicate (user+nkeys):"  \
-		eval dialog                                              \\\\\
+		eval $dialog                                             \\\\\
 			--clear --title "'\''$ALIASNAME'\''" --item-help \\\\\
 			--menu "'\''$prompt'\''" 17 55 9 $menu_list      \\\\\
 			>&2 2> "$DIALOG_TMPDIR/dialog.menu.$$"               \

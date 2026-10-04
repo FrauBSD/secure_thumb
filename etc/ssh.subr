@@ -4,7 +4,7 @@
 #
 # $Title: sh(1)/bash(1)/zsh(1) subroutine file $
 # $Copyright: 2015-2018 Devin Teske. All rights reserved. $
-# $FrauBSD: secure_thumb/etc/ssh.subr 2019-12-01 21:46:26 -0800 freebsdfrau $
+# $FrauBSD: secure_thumb/etc/ssh.subr 2026-10-03 21:43:55 -0700 Devin Teske $
 #
 ############################################################ INFORMATION
 #
@@ -108,7 +108,7 @@ ssh-agent()
 	eval "$( /usr/bin/ssh-agent "$@" )"
 }
 
-# ssh-agent-dup [-aqn]
+# ssh-agent-dup [-adnq]
 #
 # Connect to an open/active ssh-agent session available to the currently
 # authenticated user. If more than one ssh-agent is available and the `-n' flag
@@ -131,9 +131,11 @@ ssh-agent()
 # If `-a' is present, list all readable agent sockets, not just those owned by
 # the currently logged-in user.
 #
-# If `-q' is present, do not list agent nor keys.
+# If `-d' is present, disable the use of dialog, even if present.
 #
 # If `-n' is present, run non-interactively (good for scripts; pedantic).
+#
+# If `-q' is present, do not list agent nor keys.
 #
 # NB: Requires dialog_menutag() dialog_menutag2help() eval2() have()
 #     -- from this file
@@ -146,19 +148,24 @@ ssh-agent-dup()
 {
 	local funcname=ssh-agent-dup
 	local t=1s # ssh-add(1) timeout
-	local list_all= quiet= interactive=1 noninteractive=
-	local sockets=
+	local list_all= nodialog= quiet= interactive=1 noninteractive=
+	local sockn=1 sockets= sockstatout=
 	local owner socket socket_owner pid current_user
+	local ucomm sock
+	local dialog=dialog
+
+	! have "$dialog" && have bsddialog && dialog=bsddialog
 
 	local OPTIND=1 OPTARG flag
-	while getopts anq flag; do
+	while getopts adnq flag; do
 		case "$flag" in
 		a) list_all=1 ;;
+		d) nodialog=1 ;;
 		n) noninteractive=1 interactive= ;;
 		q) quiet=1 ;;
 		\?|*)
 			[ "$noninteractive" ] ||
-				echo "$funcname [-aq]" | ${LOLCAT:-cat} >&2
+				echo "$funcname [-adnq]" | ${LOLCAT:-cat} >&2
 			return ${FAILURE:-1}
 		esac
 	done
@@ -169,34 +176,49 @@ ssh-agent-dup()
 	*) owner="-c%U"
 	esac
 
+	have sockstat && sockstatout=$( sockstat -wul )
+
 	current_user=$( id -nu )
-	for socket in /tmp/ssh-*/agent.[0-9]*; do
+	for socket in /tmp/ssh-*/agent.[0-9]* $HOME/.ssh/agent/s.*.agent.*; do
 		# Must exist as a socket
 		[ -S "$socket" ] || continue
 
-		# Must end in numbers-only (after trailing dot)
-		pid="${socket##*.}"
-		[ "$pid" -a "$pid" = "${pid#*[!0-9]}" ] || continue
-		pid=$(( $pid + 1 )) # socket num is one below agent PID
+		if [ "$sockstatout" ]; then
+			pid=$( echo "$sockstatout" | awk -v socket="$socket" '
+				$6==socket && ($2=="sshd" || $2=="ssh-agent") {
+					print $3; exit found++
+				} END { exit !found }
+			' ) || continue
+			eval local _socket_pid$sockn=\$pid
+		else
+			# Must end in numbers-only (after trailing dot)
+			pid="${socket##*.}"
+			[ "$pid" -a "$pid" = "${pid#*[!0-9]}" ] || continue
+			pid=$(( $pid + 1 )) # socket num is one below agent PID
 
-		# Must be a running pid and an ssh or ssh-agent
-		if ! [ "$( ps -p $pid -o ucomm= 2> /dev/null )" = ssh-agent ]
-		then
-			# This could be a forwarded agent
-			pid=$(( $pid - 1 ))
-			[ "$( ps -p $pid -o ucomm= 2> /dev/null )" = sshd ] ||
-				continue
-		fi
+			# Must be a running pid and an ssh or ssh-agent
+			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )
+			if ! [ "$ucomm" = ssh-agent ]; then
+				# This could be a forwarded agent
+				pid=$(( $pid - 1 ))
+				ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )
+				[ "$ucomm" = sshd ] || continue
+			fi
 
-		# Must be owned by the current user unless `-a' is used
-		# NB: When `-a' is used, the socket still has to be readable
-		if [ ! "$list_all" ]; then
-			socket_owner=$( stat $owner "$socket" 2> /dev/null ) ||
-				continue
-			[ "$socket_owner" = "$current_user" ] || continue
+			# Must be owned by the current user unless `-a' is used
+			# NB: When `-a' is used, socket still must be readable
+			if [ ! "$list_all" ]; then
+				socket_owner=$( stat $owner "$socket" \
+					2> /dev/null ) || continue
+				[ "$socket_owner" = "$current_user" ] ||
+					continue
+			fi
+
+			eval local _socket_pid$sockn=\$pid
 		fi
 
 		sockets="$sockets $socket"
+		sockn=$(( $sockn + 1 ))
 	done
 
 	sockets="${sockets# }"
@@ -207,26 +229,18 @@ ssh-agent-dup()
 		fi
 		return ${FAILURE:-1}
 	fi
-	if [ "${sockets}" = "${sockets%% *}" ]; then
+	if [ "$sockets" = "${sockets%% *}" ]; then
 		# Only one socket found
-		pid=$(( ${sockets##*.} + 1 ))
-		if [ "$( ps -p $pid -o ucomm= 2> /dev/null )" = ssh-agent ]
-		then
+		pid=$_socket_pid1
+		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )
+		if [ "$ucomm" = ssh-agent ] || [ "$ucomm" = sshd ]; then
+			# local or forwarded agent
 			eval${interactive:+2} export \
 				SSH_AUTH_SOCK="$sockets" \
 				SSH_AGENT_PID="$pid"
 		else
-			# This could be a forwarded agent
-			pid=$(( $pid - 1 ))
-			if [ "$( ps -p $pid -o ucomm= 2> /dev/null )" = sshd ]
-			then
-				eval${interactive:+2} export \
-					SSH_AUTH_SOCK="$sockets" \
-					SSH_AGENT_PID="$pid"
-			else
-				eval${interactive:+2} export \
-					SSH_AUTH_SOCK="$sockets"
-			fi
+			eval${interactive:+2} export \
+				SSH_AUTH_SOCK="$sockets"
 		fi
 		[ "$SSH_AGENT_PID" -a ! "$quiet" ] && # show process
 			[ "$interactive" ] &&
@@ -243,9 +257,9 @@ ssh-agent-dup()
 	[ "$noninteractive" ] && return ${FAILURE:-1}
 
 	#
-	# If we don't have dialog(1), just print the possible values
+	# If we don't have dialog(1) or bsddialog(1), print possible values
 	#
-	if ! have dialog; then
+	if [ "$nodialog" ] || ! have "$dialog"; then
 		local prefix="%3s"
 		local fmt="$prefix %5s %-20s %s\n"
 		local num=0 choice
@@ -253,11 +267,11 @@ ssh-agent-dup()
 
 		sockets=$( command ls -tr $sockets ) # ascending order by age
 		printf "$fmt" "" PID USER+NKEYS COMMAND
+		sockn=1
 		for socket in $sockets; do
 			num=$(( $num + 1 ))
-			pid=$(( ${socket##*.} + 1 ))
+			eval pid=\$_socket_pid$sockn
 			ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )
-			[ "$ucomm" = ssh-agent ] || pid=$(( $pid - 1 ))
 			nkeys=0
 			identities=$( SSH_AUTH_SOCK="$socket" \
 				timeout $t ssh-add -l
@@ -265,6 +279,7 @@ ssh-agent-dup()
 			printf "$fmt" $num: "$pid" \
 				"$( ps -p $pid -o user= )"+"$nkeys" \
 				"$( ps -p $pid -o command= )" | ${LOLCAT:-cat}
+			sockn=$(( $sockn + 1 ))
 		done
 		echo
 		echo -n "Select a number [$num]: " | ${LOLCAT:-cat}
@@ -284,34 +299,37 @@ ssh-agent-dup()
 		set -- $sockets
 		eval socket=\"\${$choice}\"
 
-		pid=$(( ${socket##*.} + 1 ))
-		if [ "$( ps -p $pid -o ucomm= 2> /dev/null )" = ssh-agent ]
-		then
+		sockn=0
+		for sock in $sockets; do
+			sockn=$(( $sockn + 1 ))
+			[ "$sock" = "$socket" ] || continue
+			break
+		done
+		eval pid=\$_socket_pid$sockn
+		ucomm=$( ps -p $pid -o ucomm= 2> /dev/null )
+		if [ "$ucomm" = ssh-agent ] || [ "$ucomm" = sshd ]; then
+			# local or forwarded agent
 			eval2 export \
 				SSH_AUTH_SOCK="$socket" \
 				SSH_AGENT_PID="$pid"
 		else
-			# This could be a forwarded agent
-			pid=$(( $pid - 1 ))
-			if [ "$( ps -p $pid -o ucomm= 2> /dev/null )" = sshd ]
-			then
-				eval2 export \
-					SSH_AUTH_SOCK="$socket" \
-					SSH_AGENT_PID="$pid"
-			else
-				eval2 export SSH_AUTH_SOCK="$socket"
-			fi
+			eval2 export SSH_AUTH_SOCK="$socket"
 		fi
 	else
 		local menu_list=
 
 		sockets=$( command ls -1t $sockets ) # descending order by age
+		sockn=0
+		for sock in $sockets; do
+			sockn=$(( $sockn + 1 ))
+			export _socket_pid$sockn
+		done
 		menu_list=$( echo "$sockets" |
 			awk -v t="$t" -v tags="$DIALOG_MENU_TAGS" '
+			BEGIN { sockn = 1 }
 			{
 				if (++tagn > length(tags)) exit
-				if (!match($0, /[[:digit:]]+$/)) next
-				pid = substr($0, RSTART, RLENGTH) + 1
+				pid = ENVIRON["_socket_pid" sockn++]
 				cmd = sprintf("ps -p %u -o user=", pid)
 				cmd | getline user
 				close(cmd)
@@ -336,7 +354,7 @@ ssh-agent-dup()
 		)
 
 		local prompt="Pick an ssh-agent to duplicate (user+nkeys):"
-		eval dialog \
+		eval $dialog \
 			--clear --title "'$funcname'" --item-help \
 			--menu "'$prompt'" 17 55 9 $menu_list \
 			2> "$DIALOG_TMPDIR/dialog.menu.$$"
